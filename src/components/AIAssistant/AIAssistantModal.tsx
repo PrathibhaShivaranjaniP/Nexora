@@ -126,9 +126,179 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onCl
     }
   };
 
-  const handleGuideSend = (text?: string) => {
-    const query = text || guideInput;
-    if (!query.trim()) return;
+ const handleGuideSend = async (text?: string) => {
+  const query = text || guideInput;
+
+  if (!query.trim()) return;
+
+  sound.playRadarPing();
+
+  setGuideMessages(prev => [
+    ...prev,
+    { sender: 'user', text: query }
+  ]);
+
+  if (!text) {
+    setGuideInput('');
+  }
+
+  const lower = query.toLowerCase();
+
+  let botReply = '';
+  let actionButton: { label: string; tab: any } | undefined;
+
+  // ─────────────────────────────────────────────
+  // LOCAL COMMANDS
+  // ─────────────────────────────────────────────
+
+  if (
+    lower.includes('tamil') ||
+    lower.includes('தமிழ்')
+  ) {
+    setLanguage('ta');
+
+    botReply =
+      'தமிழ் மொழிக்கு மாற்றப்பட்டுள்ளது. Aegis Intelligence இப்போது தமிழில் பதிலளிக்கும்.';
+
+  } else if (
+    lower.includes('english') ||
+    lower.includes('ஆங்கிலம்')
+  ) {
+    setLanguage('en');
+
+    botReply =
+      'Language switched to English. Aegis Intelligence is ready.';
+
+  } else if (
+    lower.includes('globe') ||
+    lower.includes('tier 1') ||
+    lower.includes('பூகோளம்')
+  ) {
+    setSpatialTier(1);
+
+    botReply =
+      'Switched to Globe View. You can monitor the overall regional situation.';
+
+  } else if (
+    lower.includes('district') ||
+    lower.includes('tier 2') ||
+    lower.includes('வரைபடம்') ||
+    lower.includes('மாவட்டம்')
+  ) {
+    setSpatialTier(2);
+
+    botReply =
+      'Switched to District View. You can monitor hospitals and capacity at the district level.';
+
+  } else if (
+    lower.includes('hospital') ||
+    lower.includes('ward') ||
+    lower.includes('tier 3') ||
+    lower.includes('மருத்துவமனை')
+  ) {
+    setSpatialTier(3);
+
+    botReply =
+      'Switched to Hospital View. You can now inspect individual hospital capacity and resources.';
+
+  } else if (
+    lower.includes('ghost') ||
+    lower.includes('கோஸ்ட்')
+  ) {
+    botReply =
+      'Ghost Bed detection identifies beds that appear available in records but may not actually be operational. Aegis helps flag these capacity inconsistencies.';
+
+  } else if (
+    lower.includes('ecg') ||
+    lower.includes('heart') ||
+    lower.includes('telemetry') ||
+    lower.includes('இதயம்')
+  ) {
+    botReply =
+      'ECG and telemetry data can provide important patient-monitoring signals. In Aegis, such data can support hospital capacity and emergency monitoring workflows.';
+
+  } else if (
+    lower.includes('what-if') ||
+    lower.includes('simulation') ||
+    lower.includes('மாதிரி')
+  ) {
+    botReply =
+      'What-if simulation allows the system to explore possible capacity situations and estimate how hospitals may respond to changing demand.';
+
+  } else {
+
+    // ─────────────────────────────────────────────
+    // GEMINI AI
+    // ─────────────────────────────────────────────
+
+    try {
+      const response = await fetch(
+        'http://localhost:5000/api/ask',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: `
+You are Aegis Intelligence, the AI assistant inside the Aegis hospital capacity forecasting and emergency management dashboard.
+
+Answer the user's question clearly and professionally.
+
+You can explain:
+- hospital capacity forecasting
+- emergency routing
+- hospital beds and resources
+- dashboard features
+- AI forecasting
+- healthcare operations
+- data visualization
+- the Aegis system
+
+Important rules:
+- Do not invent live hospital data.
+- If information is not available, clearly say that it is unavailable or simulated.
+- Do not claim to make a medical diagnosis.
+- For medical emergencies, advise contacting qualified medical professionals or local emergency services.
+- Keep answers concise and easy to understand.
+- The user may ask questions in English or Tamil. Respond in the same language as the user.
+
+User question:
+${query}
+            `,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      botReply =
+        data.reply ||
+        'Sorry, I could not generate a response right now.';
+
+    } catch (error) {
+      console.error('AI Assistant error:', error);
+
+      botReply =
+        language === 'ta'
+          ? 'AI சேவையுடன் இணைக்க முடியவில்லை. Gemini backend இயங்குகிறதா என்பதை சரிபார்க்கவும்.'
+          : 'I could not connect to the AI service. Please make sure the Gemini backend is running.';
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // SHOW RESPONSE
+  // ─────────────────────────────────────────────
+
+  setGuideMessages(prev => [
+    ...prev,
+    {
+      sender: 'bot',
+      text: botReply,
 
     sound.playRadarPing();
     setGuideMessages(prev => [...prev, { sender: 'user', text: query }]);
