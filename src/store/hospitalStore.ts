@@ -63,6 +63,9 @@ export interface BloodBankData {
 export interface BedRequest {
   id: string;
   patientName: string;
+  patientAge?: number;
+  bloodGroup?: string;
+  medicalHistory?: string;
   hospitalId: string;
   hospitalName: string;
   acuity: number;
@@ -114,6 +117,12 @@ interface HospitalState {
   predictiveOffsetHours: number;
   isCctvOpen: boolean;
   isQrScannerOpen: boolean;
+
+  // Epidemic Forecast Engine
+  outbreakScenario: string;
+  surgePercent: number;
+  forecastDays: number;
+  simulationActive: boolean;
 
   // UI State
   isOxygenModalOpen: boolean;
@@ -221,7 +230,11 @@ let globalState: HospitalState = {
   userRole: 'authority',
   predictiveOffsetHours: 0,
   isCctvOpen: false,
-  isQrScannerOpen: false
+  isQrScannerOpen: false,
+  outbreakScenario: 'Respiratory Disease',
+  surgePercent: 20,
+  forecastDays: 7,
+  simulationActive: false
 };
 
 const listeners = new Set<() => void>();
@@ -910,7 +923,11 @@ export function useHospitalStore() {
       isShiftHandoverOpen: false,
       predictiveOffsetHours: 0,
       isCctvOpen: false,
-      isQrScannerOpen: false
+      isQrScannerOpen: false,
+      outbreakScenario: 'Respiratory Disease',
+      surgePercent: 20,
+      forecastDays: 7,
+      simulationActive: false
     };
     notify();
   }, []);
@@ -999,13 +1016,61 @@ export function useHospitalStore() {
 
   // Bed Request Actions
   const submitBedRequest = useCallback((req: Omit<BedRequest, 'id' | 'status' | 'timestamp'>) => {
+    // START Triage Priority: acuity 1,2 = RED (Critical), 3 = YELLOW (Delayed), 4 = GREEN (Minor)
+    const isCritical = req.acuity <= 2;
+    const initialStatus = isCritical ? 'approved' : 'pending';
+
     const newReq: BedRequest = {
       ...req,
       id: 'REQ-' + Math.floor(1000 + Math.random() * 9000),
-      status: 'pending',
+      status: initialStatus,
       timestamp: Date.now()
     };
+    
     globalState.bedRequests = [newReq, ...globalState.bedRequests];
+
+    if (isCritical) {
+      // Auto-reserve bed if critical
+      for (const district of Object.values(globalState.districts)) {
+        const hosp = district.hospitals.find(h => h.id === req.hospitalId);
+        if (hosp) {
+          hosp.reservedBeds = (hosp.reservedBeds || 0) + 1;
+          globalState.agentLogs = [
+            {
+              id: 'log-' + Date.now(),
+              timestamp: new Date().toLocaleTimeString(),
+              agentName: 'System',
+              action: `AUTO-APPROVED BED HOLD`,
+              details: `Priority 1 trauma detected. Reserved at ${hosp.name} for ${req.patientName}.`,
+              severity: 'urgent'
+            },
+            ...globalState.agentLogs.slice(0, 40)
+          ];
+          break;
+        }
+      }
+    }
+
+    notify();
+  }, []);
+
+  const cancelBedRequest = useCallback((id: string) => {
+    const reqIndex = globalState.bedRequests.findIndex(r => r.id === id);
+    if (reqIndex === -1) return;
+
+    const req = globalState.bedRequests[reqIndex];
+    if (req.status === 'approved') {
+      // Free the reserved bed
+      for (const district of Object.values(globalState.districts)) {
+        const hosp = district.hospitals.find(h => h.id === req.hospitalId);
+        if (hosp && hosp.reservedBeds && hosp.reservedBeds > 0) {
+          hosp.reservedBeds -= 1;
+          break;
+        }
+      }
+    }
+
+    globalState.bedRequests[reqIndex].status = 'rejected'; // essentially cancelled
     notify();
   }, []);
 
@@ -1050,6 +1115,7 @@ export function useHospitalStore() {
   return {
     ...globalState,
     submitBedRequest,
+    cancelBedRequest,
     approveBedRequest,
     rejectBedRequest,
     language: globalState.language,
@@ -1138,6 +1204,14 @@ export function useHospitalStore() {
     isCctvOpen: globalState.isCctvOpen,
     setCctvOpen: (v: boolean) => { globalState.isCctvOpen = v; notify(); },
     isQrScannerOpen: globalState.isQrScannerOpen,
-    setQrScannerOpen: (v: boolean) => { globalState.isQrScannerOpen = v; notify(); }
+    setQrScannerOpen: (v: boolean) => { globalState.isQrScannerOpen = v; notify(); },
+    outbreakScenario: globalState.outbreakScenario,
+    setOutbreakScenario: (s: string) => { globalState.outbreakScenario = s; notify(); },
+    surgePercent: globalState.surgePercent,
+    setSurgePercent: (p: number) => { globalState.surgePercent = p; notify(); },
+    forecastDays: globalState.forecastDays,
+    setForecastDays: (d: number) => { globalState.forecastDays = d; notify(); },
+    simulationActive: globalState.simulationActive,
+    setSimulationActive: (v: boolean) => { globalState.simulationActive = v; notify(); }
   };
 }

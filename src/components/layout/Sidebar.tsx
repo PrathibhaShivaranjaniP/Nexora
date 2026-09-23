@@ -29,6 +29,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const mainLinks = [
     { id: 'district', label: 'District Map', icon: Map },
+    { id: 'epidemic-forecast', label: 'Epidemic AI', icon: AlertTriangle },
     { id: 'hospital', label: 'Hospital 3D', icon: Building2 },
     { id: 'analytics', label: 'Analytics', icon: BarChart2 },
     { id: 'ai-insights', label: 'AI Insights', icon: BrainCircuit },

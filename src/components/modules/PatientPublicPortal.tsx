@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useHospitalStore } from '../../store/hospitalStore';
-import { getGoogleMapsDirectionsUrl } from '../../data/realDistrictsData';
+import { getGoogleMapsDirectionsUrl, getHospitalBedWaitTimes } from '../../data/realDistrictsData';
 import { sound } from '../../utils/audioEngine';
 import {
   PhoneCall,
@@ -12,6 +12,7 @@ import {
   Droplet,
   Pill,
   CheckCircle2,
+  XCircle,
   ExternalLink,
   QrCode,
   Search,
@@ -26,7 +27,12 @@ import {
   Compass,
   AlertTriangle,
   Info,
-  User
+  User,
+  Mic,
+  Ambulance,
+  Play,
+  Square,
+  Sparkles
 } from 'lucide-react';
 
 export const PatientPublicPortal: React.FC = () => {
@@ -46,6 +52,7 @@ export const PatientPublicPortal: React.FC = () => {
     setUserRole,
     language,
     submitBedRequest,
+    cancelBedRequest,
     bedRequests
   } = useHospitalStore();
 
@@ -60,6 +67,52 @@ export const PatientPublicPortal: React.FC = () => {
   const [triageToast, setTriageToast] = useState<string | null>(null);
   const [painLevel, setPainLevel] = useState<number>(5);
   const [symptoms, setSymptoms] = useState<string>('');
+
+  // Interactive Feature States
+  const [isListening, setIsListening] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [abhaProfile, setAbhaProfile] = useState<{name: string, age: number, bloodGroup: string, conditions: string} | null>(null);
+  const [cprActive, setCprActive] = useState(false);
+  const [cprBeat, setCprBeat] = useState(false);
+
+  // Metronome Effect
+  React.useEffect(() => {
+    if (!cprActive) return;
+    const interval = setInterval(() => {
+      setCprBeat(b => !b);
+      sound.playTactileClick(); // Use existing sound as a tick
+    }, 545); // 110 BPM
+    return () => clearInterval(interval);
+  }, [cprActive]);
+
+  // AI Hospital Recommendations & Auto-Diversion
+  const { recommendedHospital, isDiverted, originalHospital } = useMemo(() => {
+    // Simulated nearest hospital (e.g. Rajiv Gandhi)
+    const nearest = currentDistrict.hospitals[0]; 
+    const nearestOccupancy = (nearest.occupiedBeds + (nearest.reservedBeds || 0)) / nearest.totalBeds;
+    
+    // Auto-diversion triggers at 95%
+    const isDiverted = nearestOccupancy > 0.95;
+
+    const available = currentDistrict.hospitals.filter(h => (h.totalBeds - h.occupiedBeds - (h.reservedBeds || 0)) > 0);
+    let best = nearest;
+
+    if (isDiverted && available.length > 0) {
+      best = available.sort((a, b) => {
+        const waitA = getHospitalBedWaitTimes(a).fastestWaitMinutes;
+        const waitB = getHospitalBedWaitTimes(b).fastestWaitMinutes;
+        return waitA - waitB;
+      })[0];
+    } else if (available.length > 0) {
+      best = available.sort((a, b) => {
+        const waitA = getHospitalBedWaitTimes(a).fastestWaitMinutes;
+        const waitB = getHospitalBedWaitTimes(b).fastestWaitMinutes;
+        return waitA - waitB;
+      })[0];
+    }
+
+    return { recommendedHospital: best || nearest, isDiverted, originalHospital: nearest };
+  }, [currentDistrict]);
 
   // Filtered hospitals
   const filteredHospitals = useMemo(() => {
@@ -387,6 +440,51 @@ export const PatientPublicPortal: React.FC = () => {
             </div>
           </div>
 
+          {/* AI Smart Recommendation & Auto-Diversion */}
+          {searchQuery === '' && filterType === 'all' && (
+            <div className={`border rounded-2xl p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in duration-500 ${
+              isDiverted ? 'bg-gradient-to-r from-rose-950/40 to-amber-900/20 border-rose-500/50' : 'bg-gradient-to-r from-cyan-950/40 to-blue-900/20 border-cyan-500/30'
+            }`}>
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-full border flex items-center justify-center shrink-0 ${
+                  isDiverted ? 'bg-rose-500/20 border-rose-500/50' : 'bg-cyan-500/20 border-cyan-500/50'
+                }`}>
+                  {isDiverted ? <AlertTriangle className="w-6 h-6 text-rose-400" /> : <Sparkles className="w-6 h-6 text-cyan-400" />}
+                </div>
+                <div>
+                  <h3 className={`${isDiverted ? 'text-rose-300' : 'text-cyan-300'} font-bold text-sm flex items-center gap-2`}>
+                    {isDiverted ? 'AI Auto-Diversion Active' : 'AI Smart Match'}
+                  </h3>
+                  <p className="text-slate-300 text-sm mt-1">
+                    {isDiverted ? (
+                      <>
+                        <strong className="text-white">{originalHospital.name}</strong> is at critical capacity. 
+                        You have been auto-rerouted to <strong className="text-white">{recommendedHospital.name}</strong> to ensure immediate care.
+                      </>
+                    ) : (
+                      <>
+                        Based on your location, <strong className="text-white">{recommendedHospital.name}</strong> is recommended. 
+                        Lowest ER wait time ({getHospitalBedWaitTimes(recommendedHospital).fastestWaitMinutes}m).
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  sound.playTactileClick();
+                  setTriageHospitalId(recommendedHospital.id);
+                  setActiveTab('digital-triage');
+                }}
+                className={`shrink-0 px-4 py-2 font-bold rounded-xl text-sm transition-all text-white ${
+                  isDiverted ? 'bg-rose-600 hover:bg-rose-500 shadow-[0_0_15px_rgba(225,29,72,0.4)]' : 'bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.4)]'
+                }`}
+              >
+                Route & Request Admission
+              </button>
+            </div>
+          )}
+
           {/* Hospital Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredHospitals.map(h => {
@@ -594,19 +692,31 @@ export const PatientPublicPortal: React.FC = () => {
       {/* 6. TAB 3: FIRST AID INSTRUCTIONS */}
       {activeTab === 'first-aid' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* CPR Card */}
-          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
-            <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
-              <HeartPulse className="w-5 h-5" />
-              <span>Cardiac Arrest & CPR</span>
+            {/* CPR Card */}
+            <div className={`p-5 rounded-2xl bg-slate-900/80 border ${cprActive && cprBeat ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.4)]' : 'border-slate-800'} space-y-3 transition-all duration-75`}>
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                <HeartPulse className={`w-5 h-5 ${cprActive ? 'animate-pulse text-rose-500' : ''}`} />
+                <span>Cardiac Arrest & CPR</span>
+              </div>
+              <ul className="text-xs text-slate-300 space-y-2 leading-relaxed list-disc list-inside">
+                <li>Check responsiveness and normal breathing.</li>
+                <li>Call 108 immediately and put phone on speaker.</li>
+                <li>Push hard and fast in the center of the chest: 100-120 beats per minute.</li>
+                <li>Allow full chest recoil between compressions.</li>
+              </ul>
+              <button 
+                onClick={() => {
+                  sound.playRadarPing();
+                  setCprActive(!cprActive);
+                }}
+                className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                  cprActive ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
+                }`}
+              >
+                {cprActive ? <Square className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white" />}
+                {cprActive ? 'Stop Metronome' : 'Start CPR Metronome (110 BPM)'}
+              </button>
             </div>
-            <ul className="text-xs text-slate-300 space-y-2 leading-relaxed list-disc list-inside">
-              <li>Check responsiveness and normal breathing.</li>
-              <li>Call 108 immediately and put phone on speaker.</li>
-              <li>Push hard and fast in the center of the chest: 100-120 beats per minute (to the beat of &quot;Stayin&apos; Alive&quot;).</li>
-              <li>Allow full chest recoil between compressions.</li>
-            </ul>
-          </div>
 
           {/* Road Accident Bleeding */}
           <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
@@ -642,32 +752,141 @@ export const PatientPublicPortal: React.FC = () => {
       {activeTab === 'digital-triage' && (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
             
-            {/* Active Patient Requests */}
-            {bedRequests.filter(r => r.patientName === 'Public Citizen').length > 0 && (
+            {/* Active Patient Requests (Swiggy-Style Tracker) */}
+            {bedRequests.filter(r => r.patientName === 'Public Citizen' || r.patientName === 'Rajesh Kumar').length > 0 && (
               <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl mb-6">
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                   <Activity className="w-5 h-5 text-cyan-400" />
-                  Your Active Bed Requests
+                  Live Emergency Status
                 </h3>
-                <div className="space-y-3">
-                  {bedRequests.filter(r => r.patientName === 'Public Citizen').map(req => (
-                    <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-slate-700/50 bg-slate-950/50">
-                      <div>
-                        <div className="font-bold text-slate-200">{req.hospitalName}</div>
-                        <div className="text-xs text-slate-400 font-mono">REQ ID: {req.id}</div>
+                <div className="space-y-4">
+                  {bedRequests.filter(r => r.patientName === 'Public Citizen' || r.patientName === 'Rajesh Kumar').map(req => {
+                    const isCritical = req.acuity <= 2;
+                    const triageColorClass = isCritical ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' 
+                                           : req.acuity === 3 ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' 
+                                           : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300';
+                    const triageLabel = isCritical ? 'RED (IMMEDIATE)' : req.acuity === 3 ? 'YELLOW (DELAYED)' : 'GREEN (MINOR)';
+
+                    return (
+                      <div key={req.id} className="flex flex-col gap-4 p-5 rounded-2xl border border-slate-700/50 bg-slate-950/80 relative overflow-hidden">
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 z-10">
+                          <div>
+                            <div className="font-bold text-slate-200 text-lg">{req.hospitalName}</div>
+                            <div className="text-xs text-slate-400 font-mono mt-1">REQ ID: {req.id} • Patient: {req.patientName}</div>
+                          </div>
+                          
+                          <div className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono border flex items-center gap-2 w-max ${triageColorClass}`}>
+                            <AlertTriangle className="w-4 h-4" />
+                            TRIAGE: {triageLabel}
+                          </div>
+                        </div>
+
+                        {/* Visual Progress Bar (Swiggy Style) */}
+                        {req.status !== 'rejected' && (
+                          <div className="mt-2 mb-2 z-10">
+                            <div className="flex justify-between items-center relative">
+                              {/* Background Line */}
+                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-800 -z-10 rounded-full"></div>
+                              {/* Foreground Line */}
+                              <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-cyan-500 -z-10 rounded-full transition-all duration-1000 ${
+                                req.status === 'approved' ? 'w-[66%]' : 'w-[33%]'
+                              }`}></div>
+
+                              {/* Node 1 */}
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-cyan-500 flex items-center justify-center shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+                                  <Check className="w-4 h-4 text-white" />
+                                </div>
+                                <span className="text-[10px] font-bold text-cyan-300">Signal Sent</span>
+                              </div>
+
+                              {/* Node 2 */}
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                                  req.status === 'approved' || isCritical ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-slate-800 border-2 border-cyan-500 animate-pulse'
+                                }`}>
+                                  {req.status === 'approved' || isCritical ? <Check className="w-4 h-4 text-white" /> : <div className="w-2 h-2 rounded-full bg-cyan-400" />}
+                                </div>
+                                <span className={`text-[10px] font-bold ${req.status === 'approved' || isCritical ? 'text-cyan-300' : 'text-cyan-400'}`}>Triage Review</span>
+                              </div>
+
+                              {/* Node 3 */}
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                                  req.status === 'approved' ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-slate-800 border-2 border-slate-700'
+                                }`}>
+                                  {req.status === 'approved' ? <Check className="w-4 h-4 text-white" /> : null}
+                                </div>
+                                <span className={`text-[10px] font-bold ${req.status === 'approved' ? 'text-cyan-300' : 'text-slate-500'}`}>Bed Held</span>
+                              </div>
+
+                              {/* Node 4 */}
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center">
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-500">Admitted</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {req.status === 'rejected' && (
+                          <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl text-rose-300 text-sm flex items-center gap-2 z-10">
+                            <XCircle className="w-5 h-5" />
+                            Request Aborted or Cancelled.
+                          </div>
+                        )}
+
+                        {/* Uber-Style Ambulance Tracker for Approved */}
+                        {req.status === 'approved' && (
+                          <div className="mt-2 bg-slate-900 border border-cyan-500/30 rounded-xl p-4 relative z-10">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/50">
+                                  <Ambulance className="w-5 h-5 text-cyan-400" />
+                                </div>
+                                <div>
+                                  <div className="text-cyan-400 font-bold text-sm">Triage Approved: 45-Min Hold Active</div>
+                                  <div className="text-slate-400 text-xs">Ambulance Dispatched (TN-108-CR-921)</div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xl font-mono font-black text-white">04:30</div>
+                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Mins Away</div>
+                              </div>
+                            </div>
+                            
+                            {/* Animated Progress Line */}
+                            <div className="relative w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-4">
+                              <div className="absolute top-0 left-0 h-full bg-cyan-500 w-3/4 rounded-full">
+                                <div className="w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" />
+                              </div>
+                            </div>
+
+                            <div className="bg-cyan-950/40 border border-cyan-500/20 rounded-lg p-3 text-xs text-cyan-200">
+                              <strong>Instructions:</strong> Unlock the front door. Keep the patient seated and calm. Paramedics have received your ABHA profile and are preparing treatment.
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Cancel Button */}
+                        {req.status !== 'rejected' && (
+                          <button 
+                            onClick={() => cancelBedRequest(req.id)}
+                            className="w-full py-2.5 mt-2 bg-slate-900 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-500/50 rounded-xl text-xs font-bold transition-all z-10"
+                          >
+                            Abort Request / Patient Safe
+                          </button>
+                        )}
+                        
+                        {/* Background Glow if approved */}
+                        {req.status === 'approved' && (
+                          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+                        )}
                       </div>
-                      <div className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono border flex items-center gap-2
-                        ${req.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
-                          req.status === 'rejected' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
-                          'bg-amber-500/20 text-amber-300 border-amber-500/40'}`}
-                      >
-                        {req.status === 'approved' && <CheckCircle2 className="w-4 h-4" />}
-                        {req.status === 'rejected' && <AlertOctagon className="w-4 h-4" />}
-                        {req.status === 'pending' && <Clock className="w-4 h-4 animate-pulse" />}
-                        {req.status.toUpperCase()}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -726,12 +945,78 @@ export const PatientPublicPortal: React.FC = () => {
 
               {/* Triage Details Form */}
               <div className="w-full max-w-md space-y-6">
+                
+                {/* Voice SOS Button */}
+                <button
+                  onMouseDown={() => {
+                    setIsListening(true);
+                    sound.playRadioChirp();
+                  }}
+                  onMouseUp={() => {
+                    setIsListening(false);
+                    sound.playRadarPing();
+                    setSymptoms("Elderly patient collapsed, clutching chest. Experiencing shortness of breath and profuse sweating. Suspected acute myocardial infarction.");
+                    setPainLevel(9);
+                    setSelectedBodyParts(['chest', 'left-arm']);
+                    setTriageToast("Voice parsed successfully: Cardiac Emergency detected.");
+                    setTimeout(() => setTriageToast(null), 3000);
+                  }}
+                  className={`w-full py-4 rounded-2xl border-2 flex items-center justify-center gap-3 transition-all duration-300 ${
+                    isListening ? 'bg-rose-500/20 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)] animate-pulse' : 'bg-slate-900 border-slate-700 hover:border-cyan-500/40'
+                  }`}
+                >
+                  <div className={`p-2 rounded-full ${isListening ? 'bg-rose-500 text-white animate-bounce' : 'bg-slate-800 text-slate-300'}`}>
+                    <Mic className="w-5 h-5" />
+                  </div>
+                  <span className={`font-bold ${isListening ? 'text-rose-400' : 'text-slate-300'}`}>
+                    {isListening ? 'Listening...' : 'Hold to Speak SOS'}
+                  </span>
+                </button>
+
+                {/* ABHA Link Card */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                  {abhaProfile ? (
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="text-emerald-400 font-bold text-sm flex items-center gap-1.5 mb-1">
+                          <CheckCircle2 className="w-4 h-4" /> ABHA Linked
+                        </div>
+                        <div className="text-white font-semibold">{abhaProfile.name}, {abhaProfile.age} yrs</div>
+                        <div className="text-xs text-slate-400 mt-1">Blood: {abhaProfile.bloodGroup}</div>
+                        <div className="text-xs text-slate-400">History: {abhaProfile.conditions}</div>
+                      </div>
+                      <QrCode className="w-6 h-6 text-slate-600" />
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        sound.playTactileClick();
+                        setIsScanning(true);
+                        setTriageToast("Initializing scanner...");
+                        setTimeout(() => {
+                          setIsScanning(false);
+                          setAbhaProfile({ name: 'Rajesh Kumar', age: 62, bloodGroup: 'O-', conditions: 'Hypertension, Type 2 Diabetes' });
+                          setTriageToast("ABHA Profile loaded.");
+                          setTimeout(() => setTriageToast(null), 3000);
+                        }, 2000);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2 text-cyan-400 font-bold text-sm hover:text-cyan-300 transition-colors"
+                    >
+                      {isScanning ? (
+                        <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" /> Scanning...</div>
+                      ) : (
+                        <><QrCode className="w-5 h-5" /> Scan Health ID (ABHA)</>
+                      )}
+                    </button>
+                  )}
+                </div>
+
                 <div className="space-y-3">
-                  <label className="text-sm font-semibold text-slate-300">Target Hospital (Bed Request)</label>
+                  <label className="text-sm font-semibold text-slate-300">Target Hospital (Emergency Admission)</label>
                   <select 
                     value={triageHospitalId}
                     onChange={(e) => setTriageHospitalId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all appearance-none"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all appearance-none"
                   >
                     <option value="" disabled>Select nearest hospital...</option>
                     {currentDistrict.hospitals.map(h => (
@@ -780,7 +1065,10 @@ export const PatientPublicPortal: React.FC = () => {
                     sound.playTactileClick();
                     const hosp = currentDistrict.hospitals.find(h => h.id === triageHospitalId);
                     submitBedRequest({
-                      patientName: 'Public Citizen', // anonymous
+                      patientName: abhaProfile ? abhaProfile.name : 'Public Citizen',
+                      patientAge: abhaProfile?.age,
+                      bloodGroup: abhaProfile?.bloodGroup,
+                      medicalHistory: abhaProfile?.conditions,
                       hospitalId: triageHospitalId,
                       hospitalName: hosp?.name || 'Unknown',
                       acuity: painLevel >= 8 ? 2 : (painLevel >= 5 ? 3 : 4),
@@ -796,7 +1084,7 @@ export const PatientPublicPortal: React.FC = () => {
                   className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Shield className="w-5 h-5" />
-                  <span>Transmit Bed Request to Command</span>
+                  <span>Transmit SOS & Request Admission</span>
                 </button>
               </div>
             </div>
