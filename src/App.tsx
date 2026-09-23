@@ -21,6 +21,7 @@ import WelcomeOverlay from './components/layout/WelcomeOverlay';
 import LiveKPIStrip from './components/layout/LiveKPIStrip';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { AnalyticsDashboard } from './components/modules/AnalyticsDashboard';
+import { EpidemicForecastEngine } from './components/modules/EpidemicForecastEngine';
 import { MobileGlanceDashboard } from './components/layout/MobileGlanceDashboard';
 import { Sidebar } from './components/layout/Sidebar';
 import { OmniSearchModal } from './components/modals/OmniSearchModal';
@@ -53,7 +54,7 @@ export const App: React.FC = () => {
   } = useHospitalStore();
 
   const [activeModuleView, setActiveModuleView] = useState<
-    'spatial' | 'what-if' | 'ai-insights' | 'analytics'
+    'spatial' | 'what-if' | 'ai-insights' | 'analytics' | 'epidemic-forecast'
   >('spatial');
 
   // Mobile detection
@@ -115,7 +116,7 @@ export const App: React.FC = () => {
     } else if (view === 'route-navigator') {
       setActiveModuleView('spatial');
       setDedicatedRouteActive(true); // 108 Emergency Route
-    } else if (view === 'analytics' || view === 'ai-insights' || view === 'what-if') {
+    } else if (view === 'analytics' || view === 'ai-insights' || view === 'what-if' || view === 'epidemic-forecast') {
       setActiveModuleView(view as any);
       setDedicatedRouteActive(false);
     }
@@ -156,6 +157,10 @@ export const App: React.FC = () => {
         ) : activeModuleView === 'analytics' ? (
           <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl bg-[#040711] animate-in fade-in zoom-in-95 duration-200">
             <AnalyticsDashboard />
+          </div>
+        ) : activeModuleView === 'epidemic-forecast' ? (
+          <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl bg-[#040711] animate-in fade-in zoom-in-95 duration-200">
+            <EpidemicForecastEngine />
           </div>
         ) : activeModuleView === 'ai-insights' ? (
           <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl bg-[#040711] animate-in fade-in zoom-in-95 duration-200">

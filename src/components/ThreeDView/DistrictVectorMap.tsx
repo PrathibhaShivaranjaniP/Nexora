@@ -21,7 +21,10 @@ import {
   Users,
   HeartPulse,
   AlertTriangle,
-  Stethoscope
+  Stethoscope,
+  FastForward,
+  Truck,
+  Cpu
 } from 'lucide-react';
 import { sound } from '../../utils/audioEngine';
 import {
@@ -52,7 +55,9 @@ export const DistrictVectorMap: React.FC<DistrictVectorMapProps> = ({ onOpenComm
     language,
     bedRequests,
     approveBedRequest,
-    rejectBedRequest
+    rejectBedRequest,
+    predictiveOffsetHours,
+    setPredictiveOffsetHours
   } = useHospitalStore();
 
   const hospitals = currentDistrict.hospitals;
@@ -420,8 +425,15 @@ export const DistrictVectorMap: React.FC<DistrictVectorMapProps> = ({ onOpenComm
             const isApexHub = hosp.id === hubHospital.id;
             const isGovt = hosp.ownership === 'Government';
 
-            const statusColor = isApexHub ? '#ef4444' : isGovt ? '#f59e0b' : '#10b981';
-            const hOccPercent = Math.round((hosp.occupiedBeds / hosp.totalBeds) * 100);
+            // Predictive surge logic
+            const predictiveMultiplier = predictiveOffsetHours === 24 ? 1.3 : predictiveOffsetHours === 12 ? 1.15 : 1.0;
+            const projectedOccupancy = Math.min(hosp.totalBeds, hosp.occupiedBeds * predictiveMultiplier);
+            const hOccPercent = Math.round((projectedOccupancy / hosp.totalBeds) * 100);
+
+            const isAutoDiverted = hOccPercent >= 95;
+
+            // Base node color
+            const statusColor = isAutoDiverted ? '#ef4444' : isApexHub ? '#ef4444' : isGovt ? '#f59e0b' : '#10b981';
 
             return (
               <g
@@ -430,6 +442,20 @@ export const DistrictVectorMap: React.FC<DistrictVectorMapProps> = ({ onOpenComm
                 onClick={() => handleSelectHospital(hosp)}
                 className="cursor-pointer group"
               >
+                {/* Auto-Diversion Pulsing Ring if >95% Full */}
+                {isAutoDiverted && (
+                  <g>
+                    <circle r="28" fill="none" stroke="#ef4444" strokeWidth="2" opacity="0.6" strokeDasharray="4 2">
+                      <animate attributeName="r" values="20; 45" dur="1.5s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.8; 0" dur="1.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle r="34" fill="none" stroke="#ef4444" strokeWidth="1" opacity="0.3">
+                      <animate attributeName="r" values="24; 55" dur="1.5s" begin="0.5s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.5; 0" dur="1.5s" begin="0.5s" repeatCount="indefinite" />
+                    </circle>
+                  </g>
+                )}
+
                 {/* Active Selection Glowing Reticle */}
                 {isSelected && (
                   <g>
@@ -615,12 +641,12 @@ export const DistrictVectorMap: React.FC<DistrictVectorMapProps> = ({ onOpenComm
                 {destHospital.dataStatus} • {destHospital.lastUpdatedMinutesAgo}m ago
               </span>
             </div>
-            <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col gap-1">
+            <div className="flex-[1.5] bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col gap-1">
               <span className="text-[9px] font-mono text-slate-500 uppercase flex items-center gap-1">
-                <ShieldAlert className="w-3 h-3 text-rose-500" /> Confidence
+                <Cpu className="w-3 h-3 text-rose-500" /> Validation Source
               </span>
-              <span className={`text-[10px] font-bold ${destHospital.confidenceScore === 'HIGH' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {destHospital.confidenceScore} SCORE
+              <span className={`text-[9px] font-bold ${destHospital.confidenceScore === 'HIGH' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {destHospital.confidenceScore}: IoT Bed Weight Sensors
               </span>
             </div>
           </div>
@@ -785,10 +811,61 @@ export const DistrictVectorMap: React.FC<DistrictVectorMapProps> = ({ onOpenComm
               onClick={() => handleEnterWard(destHospital)}
               className="flex-1 py-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-900/40 transition-all cursor-pointer"
             >
-              <span>{language === 'ta' ? '3D வார்டு ➔' : '3D Ward ➔'}</span>
+              <span>{language === 'ta' ? '3D Ward 3D' : '3D Ward →'}</span>
             </button>
           </div>
         </div>
+
+        {/* Predictive Surge Time Slider (Bottom Center) */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-slate-950/90 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-3 flex items-center gap-4 shadow-2xl animate-in slide-in-from-bottom-6">
+          <div className="flex items-center gap-2 px-3 border-r border-slate-800">
+            <FastForward className="w-5 h-5 text-cyan-400" />
+            <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">Predictive Mode</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {[0, 12, 24].map(hours => (
+              <button
+                key={hours}
+                onClick={() => setPredictiveOffsetHours(hours)}
+                className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold transition-all ${
+                  predictiveOffsetHours === hours
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800'
+                }`}
+              >
+                {hours === 0 ? 'LIVE' : `+${hours} HRS`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* AI Logistics Trading Panel (Bottom Right) */}
+        {predictiveOffsetHours > 0 && (
+          <div className="absolute bottom-6 right-4 z-30 w-72 bg-gradient-to-r from-amber-950/80 to-rose-950/80 backdrop-blur-xl border border-rose-500/30 rounded-2xl p-4 shadow-2xl animate-in slide-in-from-right-8">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/50 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4 text-rose-400 animate-pulse" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-rose-300">Predicted Shortage</h4>
+                <p className="text-[10px] text-slate-300 mt-1 leading-relaxed">
+                  <strong>{hubHospital.name}</strong> will run out of Ventilators in {predictiveOffsetHours}h. 
+                  <strong className="text-emerald-400"> +5 Available</strong> at Global Hospital.
+                </p>
+                <button 
+                  onClick={() => {
+                    sound.playTactileClick();
+                    alert("Automated Drone Dispatch Authorized: Transferring 2 Ventilators.");
+                  }}
+                  className="mt-3 w-full py-1.5 bg-rose-600/20 hover:bg-rose-500/40 border border-rose-500/50 text-rose-200 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <Truck className="w-3.5 h-3.5" /> Authorize AI Transfer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
