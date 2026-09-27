@@ -130,81 +130,51 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onCl
     const query = text || guideInput;
     if (!query.trim()) return;
 
+    const lower = query.toLowerCase();
+    let botReply: string;
+    let actionButton: { label: string; tab: any } | undefined;
+    let speechLanguage: string | undefined;
+
+    if (lower.includes('tamil') || lower.includes('தமிழ்') || lower.includes('மொழி')) {
+      setLanguage('ta');
+      speechLanguage = 'ta-IN';
+      botReply = 'மொழி தமிழுக்கு மாற்றப்பட்டது. நான் எவ்வாறு உதவலாம்?';
+    } else if (lower.includes('switch to english') || lower.includes('change language to english') || lower.includes('ஆங்கிலம்')) {
+      setLanguage('en');
+      speechLanguage = 'en-US';
+      botReply = 'Language switched to English. How can I help?';
+    } else if (lower.includes('ghost bed') || lower.includes('கோஸ்ட் படுக்கை')) {
+      botReply = language === 'ta'
+        ? 'கோஸ்ட் படுக்கை என்பது நோயாளி வெளியேறிய பிறகும் அமைப்பில் ஆக்கிரமிக்கப்பட்டதாகத் தோன்றும் காலியான படுக்கையாகும். விரைவான சுத்தம் மற்றும் திருப்பி அமைத்தல் அதை மீண்டும் கிடைக்கச் செய்கிறது.'
+        : 'A Ghost Bed is physically empty but still marked as occupied in the system after a patient leaves. Rapid cleaning turnover releases it back to available capacity.';
+    } else if (lower.includes('lead ii') || lower.includes('ecg')) {
+      botReply = language === 'ta'
+        ? 'Lead II ECG என்பது இதயத்தின் மின் செயல்பாட்டையும் தாளத்தையும் தொடர்ந்து கண்காணிக்கும் இதயத் தடமுறையாகும்.'
+        : 'Lead II ECG continuously tracks the heart’s electrical activity and rhythm, helping clinicians monitor for changes that may need attention.';
+    } else if (lower.includes('district map') || lower.includes('வரைபடம்')) {
+      botReply = language === 'ta'
+        ? `${currentDistrict.name} மாவட்ட வரைபடத்தைத் திறக்கிறேன்.`
+        : `Opening the ${currentDistrict.name} District Map.`;
+      actionButton = { label: language === 'ta' ? 'மாவட்ட வரைபடத்தைத் திற' : 'Open District Map', tab: 'regional-ems' };
+    } else if (lower.includes('3d') || lower.includes('globe') || lower.includes('பூகோள')) {
+      botReply = language === 'ta'
+        ? '3D மருத்துவமனை காட்சிக்கு செல்ல கீழே உள்ள பொத்தானைத் தேர்ந்தெடுக்கவும்.'
+        : 'Select the button below to open the 3D hospital view.';
+      actionButton = { label: language === 'ta' ? '3D காட்சியைத் திற' : 'Open 3D View', tab: '3d-command' };
+    } else {
+      botReply = language === 'ta'
+        ? 'கணினி வழிகாட்டல், கோஸ்ட் படுக்கைகள், Lead II ECG அல்லது அவசர வழித்தடம் பற்றி கேளுங்கள்.'
+        : 'Ask me about system features, Ghost Beds, Lead II ECG, district navigation, or emergency hospital routing.';
+    }
+
     sound.playRadarPing();
-    setGuideMessages(prev => [...prev, { sender: 'user', text: query }]);
-    if (!text) setGuideInput('');
-
-    setTimeout(() => {
-      const lower = query.toLowerCase();
-      let botReply = '';
-      let actionBtn: { label: string; tab: any } | undefined = undefined;
-
-      // 1. Language switching commands
-      if (
-        lower.includes('tamil') ||
-        lower.includes('தமிழ்') ||
-        lower.includes('தமிழுக்கு') ||
-        lower.includes('தமிழில்')
-      ) {
-        setLanguage('ta');
-        botReply =
-          'மொழி வெற்றிகரமாக தமிழுக்கு மாற்றப்பட்டது! AegisOS இப்போது தமிழ்நாடு அவசர சிகிச்சை நெட்வொர்க்கில் (சென்னை, மதுரை, கோயம்புத்தூர், தேனி) தமிழில் செயல்படுகிறது. மேலும் ஏதேனும் உதவி தேவையா?';
-        speakText(botReply, 'ta-IN');
-      } else if (
-        lower.includes('english') ||
-        lower.includes('ஆங்கிலம்') ||
-        lower.includes('in english')
-      ) {
-        setLanguage('en');
-        botReply =
-          'Language successfully switched to English. AegisOS defense-grade health command is now operating in English across Chennai, Madurai, Coimbatore, and Theni.';
-        speakText(botReply, 'en-US');
-      }
-      // 2. Spatial tier navigation commands
-      else if (lower.includes('globe') || lower.includes('tier 1') || lower.includes('பூகோளம்')) {
-        setSpatialTier(1);
-        botReply = language === 'ta'
-          ? 'நிலை 1: 3D தேசிய பூகோள பார்வைக்கு மாற்றப்பட்டது. தமிழ்நாடு மாவட்ட மையங்கள் மற்றும் வான்வழி பரிமாற்ற பாதைகள் ஒளிர்கின்றன.'
-          : 'Navigated to Tier 1: National 3D Globe View. Rotating orbital beacons and transfer arcs active.';
-        speakText(botReply);
-      } else if (lower.includes('district') || lower.includes('tier 2') || lower.includes('வரைபடம்') || lower.includes('மாவட்டம்')) {
-        setSpatialTier(2);
-        botReply = language === 'ta'
-          ? `${currentDistrict.name} மாவட்ட வரைபடத்திற்கு மாற்றப்பட்டது. நிகழ்நேர ஆம்புலன்ஸ் இயக்கம் மற்றும் மருத்துவமனை தீவிர சிகிச்சை நிலை கண்காணிக்கப்படுகிறது.`
-          : `Navigated to Tier 2: ${currentDistrict.name} District Vector Map with live highway routing and hospital beacons.`;
-        speakText(botReply);
-      } else if (lower.includes('hospital') || lower.includes('ward') || lower.includes('tier 3') || lower.includes('மருத்துவமனை')) {
-        setSpatialTier(3);
-        botReply = language === 'ta'
-          ? 'நிலை 3: 3D மருத்துவமனை வார்டு தளம் திறக்கப்பட்டது. படுக்கை நிலைகள் மற்றும் மானிட்டர் அனிமேஷன்கள் செயலில் உள்ளன.'
-          : 'Navigated to Tier 3: 3D Architectural Ward Cutaway with telemetry sweeps and ghost bed halos.';
-        speakText(botReply);
-      }
-      // 3. Clinical & Operational concepts
-      else if (lower.includes('ghost') || lower.includes('கோஸ்ட்')) {
-        botReply = language === 'ta'
-          ? 'கோஸ்ட் படுக்கை என்பது IoT பிரஷர் சென்சார் 0 kg எடையைக் காட்டும் படுக்கையாகும் (நோயாளி புறப்பட்டுவிட்டார்), ஆனால் கணினியில் டிஸ்சார்ஜ் இன்னும் பதிவு செய்யப்படவில்லை. இதை உடனே சுத்தம் செய்து ஒதுக்குவது 3+ மணிநேர காத்திருப்பைத் தடுக்கிறது!'
-          : 'A Ghost Bed is a bed where simulated IoT sensors detect 0 kg pressure (meaning the patient vacated), but the EHR discharge was never logged. Turning it over immediately saves over 3 hours of idle bed latency!';
-        speakText(botReply);
-      } else if (lower.includes('ecg') || lower.includes('heart') || lower.includes('telemetry') || lower.includes('இதயம்')) {
-        botReply = language === 'ta'
-          ? 'எங்கள் நிகழ்நேர ECG அலைவரிசை Lead II இதய துடிப்புகளை வரைகிறது. ஆபத்தான நிலையில் உள்ள நோயாளிகளுக்கு வென்ட்ரிகுலர் டாக்ரிக்கார்டியா எச்சரிக்கை விடுக்கப்பட்டு, மாரடைப்புக்கு முன்பே ICU படுக்கை முன்பதிவு செய்யப்படுகிறது.'
-          : 'Our continuous ECG oscilloscope renders live Lead II cardiac waveforms. Deteriorating patients trigger ventricular tachycardia alarms, allowing you to pre-reserve ICU beds before cardiac arrest.';
-        speakText(botReply);
-      } else if (lower.includes('what-if') || lower.includes('simulation') || lower.includes('மாதிரி')) {
-        botReply = language === 'ta'
-          ? 'வாட்-இஃப் சான்ட்பாக்ஸ் 80% நம்பிக்கையுடன் படுக்கை தேவையை முன்கூட்டியே கணிக்கிறது. தேர்ந்தெடுக்கப்பட்ட அறுவை சிகிச்சை விகிதங்களை நீங்கள் மாற்றி அமைக்கலாம்.'
-          : 'The What-If Sandbox calculates multi-horizon census forecasts with 80% confidence bands. You can adjust elective surgery ratios or trigger crisis presets.';
-        speakText(botReply);
-      } else {
-        botReply = language === 'ta'
-          ? `நான் ${currentDistrict.name} மாவட்டத்தின் அனைத்து மருத்துவமனைகளையும் கண்காணிக்கிறேன். அவசர உதவி மற்றும் வழிகாட்டுதலுக்கு மேலே உள்ள தாவலைத் தேர்ந்தெடுக்கவும் அல்லது மொழியை மாற்றக் கூறவும்.`
-          : `I am actively monitoring capacity across ${currentDistrict.name} district hospitals (${currentDistrict.hospitals.map(h => h.shortName).join(', ')}). You can test emergency triage above or ask me to change language.`;
-        speakText(botReply);
-      }
-
-      setGuideMessages(prev => [...prev, { sender: 'bot', text: botReply, actionButton: actionBtn }]);
-    }, 250);
+    setGuideInput('');
+    setGuideMessages(prev => [
+      ...prev,
+      { sender: 'user', text: query },
+      { sender: 'bot', text: botReply, actionButton },
+    ]);
+    speakText(botReply, speechLanguage);
   };
 
   const handleTriageQuery = (preset?: string) => {
