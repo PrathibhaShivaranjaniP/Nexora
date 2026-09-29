@@ -248,75 +248,8 @@ export const InAppStreetMapEngine: React.FC<InAppStreetMapEngineProps> = ({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* 1. TOP GPS NAVIGATION STATUS BANNER */}
-      <div className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800/90 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs z-20">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-1.5 font-bold text-slate-100">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-cyan-400 font-mono text-[11px] uppercase tracking-wider">
-              {language === 'ta' ? 'நேரலை உள்ளமை வரைபடம்' : 'IN-APP GPS NAVIGATION'}
-            </span>
-          </div>
-          <span className="text-slate-600 font-mono">|</span>
-          <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300">
-            <span className="text-cyan-300 font-bold">📍 {streetRoutePoints[0].nameEn.split(' ')[0]}</span>
-            <ArrowRight className="w-3 h-3 text-cyan-400" />
-            <span className="text-emerald-300 font-bold">🏥 {hospital.shortName}</span>
-          </div>
-        </div>
-
-        {/* Live Metrics & ETA */}
-        <div className="flex items-center gap-3 font-mono text-[11px]">
-          <div className="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 flex items-center gap-2">
-            <span className="text-slate-400">ETA:</span>
-            <span className="text-emerald-400 font-bold text-xs">{remainingMinutes} mins</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-cyan-300 font-bold">{remainingDistanceKm} km</span>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-emerald-300 font-semibold">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Green Wave Priority Active</span>
-          </div>
-        </div>
-
-        {/* Map View Controls & Presets */}
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[11px]">
-            <button
-              onClick={() => setMapTheme('street-dark')}
-              className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
-                mapTheme === 'street-dark' ? 'bg-cyan-500/25 text-cyan-200 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Street
-            </button>
-            <button
-              onClick={() => setMapTheme('tactical')}
-              className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
-                mapTheme === 'tactical' ? 'bg-cyan-500/25 text-cyan-200 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Tactical
-            </button>
-          </div>
-
-          <button
-            onClick={() => setShowTrafficLayer(prev => !prev)}
-            className={`px-2 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer ${
-              showTrafficLayer
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                : 'bg-slate-900 text-slate-500 border-slate-800'
-            }`}
-            title="Toggle Live Street Congestion Heatmap"
-          >
-            Traffic
-          </button>
-        </div>
-      </div>
-
       {/* 2. INTERACTIVE SVG / VECTOR GIS CANVAS */}
-      <div className="relative flex-1 w-full overflow-hidden cursor-grab active:cursor-grabbing bg-[#050914]">
+      <div className="relative flex-1 w-full h-full overflow-hidden cursor-grab active:cursor-grabbing bg-[#050914]">
         <svg
           viewBox="0 0 900 580"
           className="w-full h-full"
@@ -719,81 +652,55 @@ export const InAppStreetMapEngine: React.FC<InAppStreetMapEngineProps> = ({
           </g>
         </svg>
 
-        {/* 3. IN-MAP TURN-BY-TURN GPS HUD OVERLAY (Top-Left) */}
-        <div className="absolute top-4 left-4 z-10 bg-slate-950/95 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-3.5 shadow-2xl text-slate-100 max-w-sm space-y-2 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-cyan-400 font-bold">
-                {nextWaypoint.maneuver === 'turn-left' ? '↰' : nextWaypoint.maneuver === 'turn-right' ? '↱' : '⬆'}
-              </div>
-              <div>
-                <div className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider">
-                  {language === 'ta' ? 'அடுத்த திருப்பம்' : 'Next Maneuver'}
-                </div>
-                <div className="text-xs font-bold text-slate-100 truncate max-w-[210px]">
-                  {language === 'ta' ? nextWaypoint.nameTa : nextWaypoint.nameEn}
-                </div>
-              </div>
-            </div>
-            <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded font-bold">
-              SIGNAL GREEN
-            </span>
+        {/* Minimal Maneuver Tag (Top-Left) */}
+        <div className="absolute top-3 left-3 z-10 bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-xl px-3 py-2 shadow-xl text-slate-100 flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-bold text-xs">
+            {nextWaypoint.maneuver === 'turn-left' ? '↰' : nextWaypoint.maneuver === 'turn-right' ? '↱' : '⬆'}
           </div>
-
-          <div className="flex items-center justify-between text-xs font-mono pt-0.5">
-            <div className="flex items-center gap-1.5 text-slate-300">
-              <Compass className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
-              <span>Heading: {Math.round(currentHeadingDeg)}° ENE</span>
+          <div>
+            <div className="text-[9px] font-mono text-cyan-400 font-bold uppercase">
+              {nextWaypoint.maneuver === 'turn-left' ? 'Turn Left' : nextWaypoint.maneuver === 'turn-right' ? 'Turn Right' : 'Straight Ahead'}
             </div>
-            <div className="text-emerald-300 font-bold">
-              {remainingDistanceKm} km left
+            <div className="text-xs font-bold text-slate-200 truncate max-w-[180px]">
+              {language === 'ta' ? nextWaypoint.nameTa : nextWaypoint.nameEn}
             </div>
+          </div>
+          <div className="border-l border-slate-700 pl-2 text-right">
+            <span className="text-[10px] font-mono font-bold text-emerald-400">{remainingDistanceKm} km</span>
+            <span className="text-[9px] font-mono text-slate-400 block">{remainingMinutes}m ETA</span>
           </div>
         </div>
 
-        {/* 4. MAP VIEWPORT INTERACTIVE CONTROLS (Top-Right) */}
-        <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 bg-slate-950/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 shadow-2xl">
+        {/* Map Viewport Controls (Bottom-Right) */}
+        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 bg-slate-950/90 backdrop-blur-md p-1 rounded-xl border border-slate-800 shadow-xl">
           <button
             onClick={handleZoomIn}
-            className="p-2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
-            title="Zoom In (+)"
+            className="p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+            title="Zoom In"
           >
-            <ZoomIn className="w-4 h-4" />
+            <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleZoomOut}
-            className="p-2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
-            title="Zoom Out (-)"
+            className="p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+            title="Zoom Out"
           >
-            <ZoomOut className="w-4 h-4" />
+            <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleResetView}
-            className="p-2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
             title="Reset View"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
-          <div className="w-full h-px bg-slate-800 my-0.5" />
           <button
             onClick={handleCenterAmbulance}
-            className="p-2 bg-slate-900 hover:bg-cyan-950 text-cyan-400 hover:text-cyan-200 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 rounded-lg transition-colors cursor-pointer"
             title="Track Ambulance"
           >
-            <Navigation className="w-4 h-4 animate-pulse" />
+            <Navigation className="w-3.5 h-3.5 animate-pulse" />
           </button>
-          <button
-            onClick={handleCenterHospital}
-            className="p-2 bg-slate-900 hover:bg-emerald-950 text-emerald-400 hover:text-emerald-200 rounded-lg transition-colors cursor-pointer"
-            title="Focus Destination Hospital"
-          >
-            <Hospital className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* 5. DRAG HINT INSTRUCTION (Bottom-Left) */}
-        <div className="absolute bottom-3 left-4 z-10 text-[11px] text-slate-400 flex items-center gap-3 bg-slate-950/80 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-slate-800">
-          <span>Click & Drag to pan map • Scroll / Zoom buttons to inspect streets • Live GPS coordinates verified</span>
         </div>
       </div>
     </div>

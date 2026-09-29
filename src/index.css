@@ -135,3 +135,10 @@
 .animate-bullet-1 { animation: bulletFadeIn 0.4s ease-out 0.6s both; }
 .animate-bullet-2 { animation: bulletFadeIn 0.4s ease-out 1.0s both; }
 .animate-bullet-3 { animation: bulletFadeIn 0.4s ease-out 1.4s both; }
+
+/* AI Scene scanning laser */
+@keyframes scan {
+  0% { top: 0; }
+  50% { top: 100%; }
+  100% { top: 0; }
+}

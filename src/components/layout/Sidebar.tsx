@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
   Map, Building2, BarChart2, BrainCircuit, Sliders,
   Droplet, Wind, Mic, Search, AlertTriangle, LogOut,
-  Menu, X, ChevronDown, ChevronUp, Camera, ScanLine
+  Menu, X, ChevronDown, ChevronUp, Camera, ScanLine, Siren,
+  Radio, Crown, Navigation
 } from 'lucide-react';
 import { useHospitalStore } from '../../store/hospitalStore';
 
@@ -26,15 +27,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { openOxygenModal, openBloodModal, setCctvOpen, setQrScannerOpen } = useHospitalStore();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isDemoOpen, setIsDemoOpen] = useState(false);
+  const [sidebarMode, setSidebarMode] = useState<'dispatch' | 'director'>('director');
 
   const mainLinks = [
     { id: 'district', label: 'District Map', icon: Map },
-    { id: 'epidemic-forecast', label: 'Epidemic AI', icon: AlertTriangle },
+    { id: 'route-navigator', label: '108 Route Navigator', icon: Navigation },
+    { id: 'doctor-dashboard', label: 'ER Doctor View', icon: Siren },
     { id: 'hospital', label: 'Hospital 3D', icon: Building2 },
+    { id: 'epidemic-forecast', label: 'Epidemic AI', icon: AlertTriangle },
     { id: 'analytics', label: 'Analytics', icon: BarChart2 },
     { id: 'ai-insights', label: 'AI Insights', icon: BrainCircuit },
     { id: 'what-if', label: 'What-If Simulator', icon: Sliders },
   ];
+
+  const filteredLinks = sidebarMode === 'dispatch'
+    ? mainLinks.filter(l => ['district', 'route-navigator', 'doctor-dashboard', 'hospital'].includes(l.id))
+    : mainLinks;
 
   const actionButtons = [
     { id: 'cctv', label: 'Live CCTV Feeds', icon: Camera, onClick: () => setCctvOpen && setCctvOpen(true), color: 'text-amber-400' },
@@ -50,20 +58,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
       isActive ? 'bg-cyan-900/40 text-cyan-400 border border-cyan-800/50' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
     }`;
 
+  const dispatchBtnClass = sidebarMode === 'dispatch'
+    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-500/30'
+    : 'text-slate-400 hover:text-slate-200';
+
+  const directorBtnClass = sidebarMode === 'director'
+    ? 'bg-purple-600 text-white shadow-md shadow-purple-500/30'
+    : 'text-slate-400 hover:text-slate-200';
+
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[#0a0f1c] border-r border-slate-800 text-sm">
-      <div className="p-6 flex items-center gap-3 border-b border-slate-800">
+      <div className="p-5 flex items-center gap-3 border-b border-slate-800">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
           <Building2 size={18} className="text-white" />
         </div>
         <span className="text-lg font-bold text-white tracking-wider">AEGIS<span className="text-cyan-400">OS</span></span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-8">
+      {/* Role-Based Workspace Toggle */}
+      <div className="px-3 pt-3 pb-1 border-b border-slate-800/60">
+        <div className="flex bg-slate-900/90 rounded-lg p-1 border border-slate-700/50 gap-1">
+          <button
+            onClick={() => setSidebarMode('dispatch')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-bold tracking-wider transition-all ${dispatchBtnClass}`}
+          >
+            <Radio size={12} /> DISPATCH
+          </button>
+          <button
+            onClick={() => setSidebarMode('director')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-bold tracking-wider transition-all ${directorBtnClass}`}
+          >
+            <Crown size={12} /> DIRECTOR
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
         {/* Main Navigation */}
         <div className="space-y-1">
-          <div className="text-xs font-semibold text-slate-500 mb-3 px-4 uppercase tracking-wider">Views</div>
-          {mainLinks.map((link) => {
+          <div className="text-xs font-semibold text-slate-500 mb-2 px-4 uppercase tracking-wider">
+            {sidebarMode === 'dispatch' ? 'Operations' : 'Executive Views'}
+          </div>
+          {filteredLinks.map((link) => {
             const Icon = link.icon;
             return (
               <div key={link.id} className={navItemClass(activeView === link.id)} onClick={() => { onNavigate(link.id); setIsMobileOpen(false); }}>

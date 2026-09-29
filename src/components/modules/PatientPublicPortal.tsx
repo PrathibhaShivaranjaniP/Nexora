@@ -63,6 +63,9 @@ export const PatientPublicPortal: React.FC = () => {
 
   // Digital Triage States
   const [triageHospitalId, setTriageHospitalId] = useState<string>('');
+  const [selfTransportMode, setSelfTransportMode] = useState(false);
+  const [selfTransportData, setSelfTransportData] = useState({ complaint: '', eta: '15', name: '' });
+  const [showQrToken, setShowQrToken] = useState(false);
   const [selectedBodyParts, setSelectedBodyParts] = useState<string[]>([]);
   const [triageToast, setTriageToast] = useState<string | null>(null);
   const [painLevel, setPainLevel] = useState<number>(5);
@@ -210,6 +213,13 @@ export const PatientPublicPortal: React.FC = () => {
                 <span>CALL 108 SOS</span>
               </button>
 
+              <button
+                onClick={() => { setSelfTransportMode(true); sound.playTactileClick(); }}
+                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-cyan-600/20 border border-cyan-600/40 text-cyan-300 hover:bg-cyan-600/30 transition-all"
+              >
+                <Navigation className="w-4 h-4" /> DRIVE MYSELF
+              </button>
+
               <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <span>Toll-Free • GPS Location Auto-Transmitted</span>
@@ -235,7 +245,95 @@ export const PatientPublicPortal: React.FC = () => {
         )}
       </div>
 
-      {/* 2. ACTIVE BED RESERVATION CARD (IF CITIZEN HAS ACTIVE TOKEN) */}
+      {selfTransportMode && (
+        <div className="space-y-4 animate-in fade-in duration-300">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-black text-slate-100">Self-Transport Triage</h2>
+            <button onClick={() => setSelfTransportMode(false)} className="text-xs text-slate-500 hover:text-slate-300">← Back</button>
+          </div>
+          
+          {!showQrToken ? (
+            <div className="space-y-4">
+              {/* Quick Registration */}
+              <div className="bg-slate-900/60 border border-slate-700/60 rounded-xl p-4 space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Pre-Registration</h3>
+                <input
+                  placeholder="Your Name"
+                  value={selfTransportData.name}
+                  onChange={e => setSelfTransportData(prev => ({...prev, name: e.target.value}))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600"
+                />
+                <select
+                  value={selfTransportData.complaint}
+                  onChange={e => setSelfTransportData(prev => ({...prev, complaint: e.target.value}))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                >
+                  <option value="">Select Chief Complaint</option>
+                  <option value="chest-pain">Chest Pain</option>
+                  <option value="breathing">Difficulty Breathing</option>
+                  <option value="injury">Injury / Trauma</option>
+                  <option value="fever">High Fever</option>
+                  <option value="abdominal">Abdominal Pain</option>
+                  <option value="other">Other</option>
+                </select>
+                <select
+                  value={selfTransportData.eta}
+                  onChange={e => setSelfTransportData(prev => ({...prev, eta: e.target.value}))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                >
+                  <option value="10">Arriving in ~10 min</option>
+                  <option value="15">Arriving in ~15 min</option>
+                  <option value="20">Arriving in ~20 min</option>
+                  <option value="30">Arriving in ~30 min</option>
+                </select>
+              </div>
+              
+              {/* AI Recommended Hospital */}
+              <div className="bg-emerald-950/30 border border-emerald-700/40 rounded-xl p-4">
+                <div className="text-[10px] text-emerald-500 uppercase tracking-widest mb-1">AI Recommended</div>
+                <div className="text-sm font-bold text-emerald-300">{currentDistrict.hospitals[0]?.name || 'Nearest Hospital'}</div>
+                <div className="text-xs text-slate-400 mt-1">ICU Available • ER Open • Shortest Route</div>
+              </div>
+              
+              {/* Generate Token Button */}
+              <button
+                onClick={() => setShowQrToken(true)}
+                disabled={!selfTransportData.complaint}
+                className="w-full py-3 rounded-xl text-sm font-bold bg-cyan-600 text-white hover:bg-cyan-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                GENERATE TRIAGE TOKEN
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* QR Token */}
+              <div className="bg-slate-900/60 border border-slate-700/60 rounded-xl p-6 text-center">
+                <div className="text-[10px] text-cyan-500 uppercase tracking-widest mb-3">Digital Triage Token</div>
+                <div className="w-40 h-40 mx-auto bg-white rounded-xl flex items-center justify-center mb-3">
+                  <QrCode className="w-28 h-28 text-slate-900" />
+                </div>
+                <div className="text-xs text-slate-400">Show this at ER reception to skip the line</div>
+                <div className="text-lg font-mono font-black text-cyan-400 mt-2">TKN-{Math.floor(Math.random() * 9000 + 1000)}</div>
+              </div>
+              
+              {/* Navigation Button */}
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${currentDistrict.hospitals[0]?.coordinates.lat || 13.08},${currentDistrict.hospitals[0]?.coordinates.lng || 80.27}&travelmode=driving`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-4 rounded-xl text-sm font-black bg-cyan-600 text-white hover:bg-cyan-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/30"
+              >
+                <Navigation className="w-5 h-5" /> START NAVIGATION
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!selfTransportMode && (
+        <>
+          {/* 2. ACTIVE BED RESERVATION CARD (IF CITIZEN HAS ACTIVE TOKEN) */}
       {activeReservation && (
         <div className="rounded-2xl bg-gradient-to-r from-cyan-950/90 via-slate-900 to-blue-950/90 border-2 border-cyan-400/80 p-5 shadow-2xl shadow-cyan-950/60 animate-in slide-in-from-top-4 duration-300">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -1090,6 +1188,8 @@ export const PatientPublicPortal: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
 
       </div>

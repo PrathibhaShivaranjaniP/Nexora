@@ -28,6 +28,7 @@ import { OmniSearchModal } from './components/modals/OmniSearchModal';
 import { AIShiftHandoverModal } from './components/modals/AIShiftHandoverModal';
 import { AIInsightsPanel } from './components/modules/AIInsightsPanel';
 import { PredictiveTimeScrubber } from './components/modules/PredictiveTimeScrubber';
+import { DoctorDashboard } from './components/modules/DoctorDashboard';
 import { CCTVFeedPanel } from './components/modules/CCTVFeedPanel';
 import { QRScannerModal } from './components/modals/QRScannerModal';
 import { sound } from './utils/audioEngine';
@@ -54,7 +55,7 @@ export const App: React.FC = () => {
   } = useHospitalStore();
 
   const [activeModuleView, setActiveModuleView] = useState<
-    'spatial' | 'what-if' | 'ai-insights' | 'analytics' | 'epidemic-forecast'
+    'spatial' | 'what-if' | 'ai-insights' | 'analytics' | 'epidemic-forecast' | 'doctor-dashboard'
   >('spatial');
 
   // Mobile detection
@@ -116,7 +117,7 @@ export const App: React.FC = () => {
     } else if (view === 'route-navigator') {
       setActiveModuleView('spatial');
       setDedicatedRouteActive(true); // 108 Emergency Route
-    } else if (view === 'analytics' || view === 'ai-insights' || view === 'what-if' || view === 'epidemic-forecast') {
+    } else if (view === 'analytics' || view === 'ai-insights' || view === 'what-if' || view === 'epidemic-forecast' || view === 'doctor-dashboard') {
       setActiveModuleView(view as any);
       setDedicatedRouteActive(false);
     }
@@ -165,6 +166,10 @@ export const App: React.FC = () => {
         ) : activeModuleView === 'ai-insights' ? (
           <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl bg-[#040711] animate-in fade-in zoom-in-95 duration-200">
             <AIInsightsPanel />
+          </div>
+        ) : activeModuleView === 'doctor-dashboard' ? (
+          <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl bg-[#040711] animate-in fade-in zoom-in-95 duration-200">
+            <DoctorDashboard />
           </div>
         ) : activeModuleView === 'what-if' ? (
           <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl bg-[#040711] animate-in fade-in zoom-in-95 duration-200">

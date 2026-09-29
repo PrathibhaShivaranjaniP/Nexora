@@ -24,7 +24,13 @@ import {
   AlertTriangle,
   ExternalLink,
   Map,
-  CheckCircle2
+  CheckCircle2,
+  Camera,
+  Mic,
+  Heart,
+  Droplets,
+  Stethoscope,
+  Upload
 } from 'lucide-react';
 import { sound } from '../../utils/audioEngine';
 
@@ -68,6 +74,13 @@ export const EmergencyRoutePage: React.FC<EmergencyRoutePageProps> = ({
   const [isLocating, setIsLocating] = useState(false);
   const [ambulanceProgress, setAmbulanceProgress] = useState(0.18);
   const [isSpeakingRoute, setIsSpeakingRoute] = useState(false);
+
+  // Paramedic Toolkit States
+  const [activeProtocol, setActiveProtocol] = useState<'cardiac' | 'stroke' | 'trauma' | null>(null);
+  const [paramedicVitals, setParamedicVitals] = useState({ hr: '112', bp: '120/80', spo2: '96' });
+  const [isMicListening, setIsMicListening] = useState(false);
+  const [scenePhotoUploaded, setScenePhotoUploaded] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<'paramedic' | 'hospital'>('paramedic');
 
   // Sync selectedHospitalId with activeDestId
   useEffect(() => {
@@ -276,64 +289,64 @@ export const EmergencyRoutePage: React.FC<EmergencyRoutePageProps> = ({
   return (
     <div className="w-full h-full min-h-[calc(100vh-190px)] flex flex-col bg-[#030712] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
       {/* ─────────────────────────────────────────────────────────────
-          TOP CONTROL BAR & ROUTE DISPATCH HUD
+          TOP CONTROL BAR & ROUTE DISPATCH HUD (CLEAN & STREAMLINED)
          ───────────────────────────────────────────────────────────── */}
-      <div className="bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/90 p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xl">
-        {/* Left: Back & Route Title */}
+      <div className="bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/90 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-xl">
+        {/* Left: Back & Route Breadcrumb */}
         <div className="flex items-center gap-3">
           <button
             onClick={handleBack}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 hover:text-cyan-300 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition-all shadow-md"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 hover:text-cyan-300 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition-all shadow-sm"
           >
             <ArrowLeft className="w-4 h-4 text-cyan-400" />
-            <span>{t.backToDistrict || 'Back to District Map'}</span>
+            <span className="hidden sm:inline">{t.backToDistrict || 'District Map'}</span>
           </button>
 
-          <div className="h-5 w-px bg-slate-700 hidden sm:block" />
+          <div className="h-5 w-px bg-slate-800 hidden sm:block" />
 
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-              <h2 className="text-sm font-extrabold text-slate-100 flex items-center gap-2">
-                <span>{t.routeNavigatorTitle || '108 EMERGENCY ROUTE THEATER'}</span>
-                <span className="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9.5px] px-2 py-0.2 rounded-full font-mono">
-                  GREEN WAVE OVERRIDE
-                </span>
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              <h2 className="text-xs font-black font-mono tracking-wider text-slate-100 flex items-center gap-2">
+                <span>108 CORRIDOR:</span>
+                <span className="text-cyan-400">{originCoords.label?.split(' ')[0] || '108 HQ'} → {targetHospital.name}</span>
               </h2>
             </div>
-            <p className="text-[11px] text-slate-400 font-mono">
-              {currentDistrict.name} District • Priority 1 Trauma Corridor • Dedicated Satellite View
+            <p className="text-[10px] text-slate-400 font-mono">
+              Green Wave Priority • {routeDetails.distanceKm} km • {routeDetails.ambulanceTransitMinutes}m Transit
             </p>
           </div>
         </div>
 
-        {/* Center/Right: Origin & Destination Selector Pills */}
+        {/* Right: Streamlined Control Group */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Origin Mode Toggle */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+          {/* Map View Switcher */}
+          <div className="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[11px]">
             <button
               onClick={() => {
                 sound.playTactileClick();
-                setOriginType('dispatch');
+                setRouteViewMode('street');
               }}
-              className={`px-2.5 py-1 rounded-lg font-mono text-[11px] transition-all ${
-                originType === 'dispatch'
-                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
+              className={`px-2.5 py-1 rounded-md font-mono transition-all ${
+                routeViewMode === 'street'
+                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              🚨 108 Dispatch HQ
+              Street
             </button>
             <button
-              onClick={handleDetectGps}
-              className={`px-2.5 py-1 rounded-lg font-mono text-[11px] transition-all flex items-center gap-1 ${
-                originType === 'gps'
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/30'
+              onClick={() => {
+                sound.playRadarPing();
+                setRouteViewMode('vector');
+              }}
+              className={`px-2.5 py-1 rounded-md font-mono transition-all ${
+                routeViewMode === 'vector'
+                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <LocateFixed className={`w-3 h-3 ${isLocating ? 'animate-spin' : ''}`} />
-              <span>{isLocating ? 'Locating...' : 'Caller GPS Scene'}</span>
+              Satellite
             </button>
           </div>
 
@@ -345,11 +358,11 @@ export const EmergencyRoutePage: React.FC<EmergencyRoutePageProps> = ({
               setActiveDestId(e.target.value);
               setSelectedHospitalId(e.target.value);
             }}
-            className="bg-slate-950 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer shadow-md"
+            className="bg-slate-950 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer shadow-sm"
           >
             {hospitals.map(h => (
               <option key={h.id} value={h.id}>
-                🏥 {h.name} ({h.traumaLevel})
+                🏥 {h.name}
               </option>
             ))}
           </select>
@@ -357,72 +370,35 @@ export const EmergencyRoutePage: React.FC<EmergencyRoutePageProps> = ({
           {/* Voice Guide Button */}
           <button
             onClick={speakRoute}
-            className={`p-2 rounded-xl border transition-all flex items-center gap-1.5 text-xs font-bold ${
+            className={`p-1.5 rounded-xl border transition-all flex items-center gap-1 text-xs font-bold ${
               isSpeakingRoute
                 ? 'bg-cyan-500 text-slate-950 border-cyan-400 animate-pulse'
-                : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-cyan-300 hover:border-slate-700'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-cyan-300'
             }`}
             title="Voice Route Directions"
           >
             {isSpeakingRoute ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{isSpeakingRoute ? 'Stop Voice' : 'Voice Guide'}</span>
           </button>
 
-          {/* Tactical 108 Dispatch / Trauma Call Button */}
+          {/* Tactical Trauma Call */}
           <button
             onClick={() => {
               sound.playRadioChirp();
               if (onOpenComms) onOpenComms('hosp-er-chief');
             }}
-            className="px-3 py-1.5 bg-gradient-to-r from-rose-950 via-slate-900 to-amber-950 hover:from-rose-900 hover:to-amber-900 text-rose-300 hover:text-rose-100 border border-rose-500/40 hover:border-rose-400 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition-all cursor-pointer group"
-            title="Radio Call Trauma Bay Resuscitation Chief"
+            className="px-2.5 py-1.5 bg-rose-950/70 hover:bg-rose-900 border border-rose-600/40 text-rose-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            <Radio className="w-3.5 h-3.5 text-rose-400 group-hover:animate-pulse" />
-            <span className="hidden md:inline">Call Trauma Desk</span>
-            <span className="md:hidden">Call</span>
-            <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+            <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+            <span className="hidden sm:inline">Call Trauma Desk</span>
           </button>
 
-          {/* Map View Mode Switcher */}
-          {/* Map View Switcher: In-App Street GPS vs Satellite Vector */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
-            <button
-              onClick={() => {
-                sound.playTactileClick();
-                setRouteViewMode('street');
-              }}
-              className={`px-3 py-1 rounded-lg font-mono text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${
-                routeViewMode === 'street'
-                  ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Map className="w-3.5 h-3.5" />
-              <span>{language === 'ta' ? 'உள்ளமை வீதி வரைபடம்' : 'In-App Street Map'}</span>
-            </button>
-            <button
-              onClick={() => {
-                sound.playRadarPing();
-                setRouteViewMode('vector');
-              }}
-              className={`px-3 py-1 rounded-lg font-mono text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${
-                routeViewMode === 'vector'
-                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <span>🛰️</span>
-              <span>{language === 'ta' ? 'திசையன் வழித்தடம்' : 'Satellite Vector'}</span>
-            </button>
-          </div>
-
-          {/* Direct Ward Cutaway Jump */}
+          {/* Enter 3D Ward */}
           <button
             onClick={handleEnterWard}
-            className="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-900/40 transition-all cursor-pointer"
+            className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-cyan-900/30 transition-all cursor-pointer"
           >
             <Eye className="w-3.5 h-3.5" />
-            <span>{t.enterWardCutaway || 'Enter 3D Ward'}</span>
+            <span>3D Ward</span>
           </button>
         </div>
       </div>
@@ -717,217 +693,303 @@ export const EmergencyRoutePage: React.FC<EmergencyRoutePageProps> = ({
           )}
         </div>
 
-        {/* RIGHT 30%: DISPATCH HUD, REAL-TIME BED TELEMETRY & WAYPOINTS */}
-        <div className="lg:col-span-4 bg-[#050914] p-4 flex flex-col justify-between space-y-4 overflow-y-auto">
-          {/* Section 1: Real-Time Destination Hospital Card */}
-          <div className="bg-slate-900/90 border border-slate-700/90 rounded-2xl p-4 space-y-3 shadow-xl">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-mono text-cyan-400 font-bold flex items-center gap-1">
-                  <Hospital className="w-3.5 h-3.5" /> Destination Hospital
-                </span>
-                <h3 className="text-sm font-bold text-slate-100 leading-snug">{targetHospital.name}</h3>
-                <p className="text-[10.5px] text-slate-400">{targetHospital.ownership} • {currentDistrict.name}</p>
-              </div>
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                  targetHospital.traumaLevel.includes('Apex')
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                }`}
-              >
-                {targetHospital.traumaLevel}
-              </span>
-            </div>
-
-            {/* Real-Time Live Bed Data Grid */}
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800 text-xs">
-              <div className="bg-slate-950 p-2 rounded-xl border border-slate-800/80">
-                <div className="text-[9.5px] text-slate-400">Total Actual Beds</div>
-                <div className="text-sm font-bold text-slate-100 font-mono">{actualHospitalTotalBeds.toLocaleString()}</div>
-                <div className="text-[9px] text-slate-500">Certified Capacity</div>
-              </div>
-              <div className="bg-slate-950 p-2 rounded-xl border border-slate-800/80">
-                <div className="text-[9.5px] text-slate-400">Live Available Beds</div>
-                <div className="text-sm font-bold text-emerald-400 font-mono">{actualHospitalAvailableBeds.toLocaleString()}</div>
-                <div className="text-[9px] text-emerald-500/80">Ready for Admission</div>
-              </div>
-              <div className="bg-slate-950 p-2 rounded-xl border border-slate-800/80">
-                <div className="text-[9.5px] text-slate-400">Critical ICU Beds</div>
-                <div className="text-sm font-bold text-amber-400 font-mono">
-                  {actualHospitalIcuBeds - actualHospitalIcuOccupied} / {actualHospitalIcuBeds}
-                </div>
-                <div className="text-[9px] text-amber-500/80">
-                  {Math.round((actualHospitalIcuOccupied / actualHospitalIcuBeds) * 100)}% Saturation
-                </div>
-              </div>
-              <div className="bg-slate-950 p-2 rounded-xl border border-slate-800/80">
-                <div className="text-[9.5px] text-slate-400">Emergency Wait</div>
-                <div className="text-sm font-bold text-cyan-300 font-mono">{targetHospital.edWaitMinutes} mins</div>
-                <div className="text-[9px] text-cyan-500/80">Pre-Triage Notified</div>
-              </div>
-            </div>
-
-            {/* IoT Bed Sensor Indicator */}
-            <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                IoT Bed Pressure Sensors Live
-              </span>
-              <span className="text-slate-300 font-bold">{actualHospitalOccupancyPercent}% Census</span>
-            </div>
-
-            {/* Live Bed Reservation Wait Times & Queue System */}
-            <div className="pt-2.5 border-t border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-[10px] font-mono font-bold">
-                <span className="text-cyan-400 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {language === 'ta' ? 'படுக்கை முன்பதிவு காத்திருப்பு:' : 'Bed Reservation Wait Times:'}
-                </span>
-                <span className="text-emerald-400">
-                  {language === 'ta' ? '45 நிமிடம் நிறுத்திவைப்பு' : '45m Guaranteed Hold'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-1.5 font-mono text-center text-[10px]">
-                <div className="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
-                  <span className="text-slate-400 block text-[8.5px]">ED Bay</span>
-                  <span className={`font-bold ${waitTimes.ed.waitTimeMinutes === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {waitTimes.ed.waitTimeMinutes === 0 ? '0m (Instant)' : `${waitTimes.ed.waitTimeMinutes}m`}
-                  </span>
-                </div>
-                <div className="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
-                  <span className="text-slate-400 block text-[8.5px]">ICU Bed</span>
-                  <span className="font-bold text-cyan-300">{waitTimes.icu.waitTimeMinutes}m wait</span>
-                </div>
-                <div className="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
-                  <span className="text-slate-400 block text-[8.5px]">Med-Surg</span>
-                  <span className="font-bold text-emerald-400">{waitTimes.medSurg.waitTimeMinutes}m wait</span>
-                </div>
-              </div>
-
-              {/* Reserve Bed Trigger or Active Hold Banner */}
-              {activeReservation && activeReservation.hospitalId === targetHospital.id ? (
-                <button
-                  onClick={() => {
-                    sound.playRadarPing();
-                    openReservationModal(targetHospital.id);
-                  }}
-                  className="w-full py-2 bg-gradient-to-r from-emerald-950 to-cyan-950 border border-emerald-500/50 hover:border-emerald-400 text-emerald-200 font-bold rounded-xl text-xs flex items-center justify-between px-3 shadow-lg transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    <span>BED RESERVED: {activeReservation.id}</span>
-                  </div>
-                  <span className="text-amber-300 font-mono font-black text-xs">
-                    {Math.floor(activeReservation.remainingSeconds / 60)}:{(activeReservation.remainingSeconds % 60).toString().padStart(2, '0')} ➔
-                  </span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    sound.playRadarPing();
-                    openReservationModal(targetHospital.id);
-                  }}
-                  className="w-full py-2 bg-gradient-to-r from-cyan-600 via-cyan-500 to-emerald-500 hover:from-cyan-500 hover:to-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-900/40 transition-all cursor-pointer"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>
-                    {language === 'ta'
-                      ? 'படுக்கை முன்பதிவு செய் (45 நிமி உத்தரவாதம்) ➔'
-                      : 'Reserve Bed in Advance (45-Min Hold) ➔'}
-                  </span>
-                </button>
-              )}
-            </div>
+        {/* RIGHT 30%: DISPATCH HUD & PARAMEDIC WORKSPACE (CLEAN 2-TAB DESIGN) */}
+        <div className="lg:col-span-4 bg-[#050914] p-3.5 flex flex-col justify-between space-y-3 overflow-y-auto custom-scrollbar">
+          {/* Workspace Tab Switcher */}
+          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs gap-1">
+            <button
+              onClick={() => {
+                sound.playTactileClick();
+                setRightPanelTab('paramedic');
+              }}
+              className={`flex-1 py-1.5 rounded-lg font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                rightPanelTab === 'paramedic'
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>🚑</span>
+              <span>Paramedic Kit</span>
+            </button>
+            <button
+              onClick={() => {
+                sound.playTactileClick();
+                setRightPanelTab('hospital');
+              }}
+              className={`flex-1 py-1.5 rounded-lg font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                rightPanelTab === 'hospital'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>🏥</span>
+              <span>Hospital Beds</span>
+            </button>
           </div>
 
-          {/* Section 2: Turn-by-Turn Waypoints */}
-          <div className="space-y-2 flex-1">
-            <div className="flex items-center justify-between text-xs font-mono text-slate-300 font-bold">
-              <span className="flex items-center gap-1.5 text-cyan-400">
-                <Route className="w-3.5 h-3.5" />
-                {t.routeWaypoints || 'Turn-by-Turn Waypoints'}
-              </span>
-              <span className="text-emerald-400 text-[10px] flex items-center gap-1">
-                <Zap className="w-2.5 h-2.5" /> Green Wave Override
-              </span>
-            </div>
+          {/* TAB 1: PARAMEDIC IN-TRANSIT TOOLKIT */}
+          {rightPanelTab === 'paramedic' ? (
+            <div className="space-y-3 flex-1 flex flex-col justify-between animate-in fade-in duration-200">
+              {/* Ambulance Telemetry Status */}
+              <div className="bg-[#07132a] border border-cyan-500/30 rounded-xl p-3 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-sm">
+                    🚑
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-100">108 ALS #TN-04</div>
+                    <div className="text-[10px] font-mono text-cyan-400">Speed: 64 km/h • Siren Active</div>
+                  </div>
+                </div>
+                <div className="text-right font-mono">
+                  <div className="text-emerald-400 font-bold text-sm">{routeDetails.ambulanceTransitMinutes}m ETA</div>
+                  <div className="text-[9.5px] text-slate-400">{routeDetails.distanceKm} km away</div>
+                </div>
+              </div>
 
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-              {routeDetails.steps.map(step => (
-                <div
-                  key={step.stepNumber}
-                  className="p-2.5 bg-slate-950/80 border border-slate-800 rounded-xl flex items-start gap-2.5 text-xs shadow-sm hover:border-slate-700 transition-colors"
-                >
-                  <span className="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-500/40 text-cyan-300 font-mono font-bold flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
-                    {step.stepNumber}
+              {/* One-Tap Trauma Protocol Buttons */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 space-y-2">
+                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">
+                  Rapid Protocols
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: 'cardiac', label: 'Cardiac Arrest', color: 'rose' },
+                    { id: 'stroke', label: 'Stroke Protocol', color: 'amber' },
+                    { id: 'trauma', label: 'Severe Trauma', color: 'purple' },
+                  ].map((p) => {
+                    const isActive = activeProtocol === p.id;
+                    const activeClass = p.color === 'rose'
+                      ? 'bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-500/30'
+                      : p.color === 'amber'
+                      ? 'bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-500/30'
+                      : 'bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-500/30';
+                    const inactiveClass = 'bg-slate-950/80 text-slate-400 border-slate-800 hover:text-slate-200';
+
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          sound.playTactileClick();
+                          setActiveProtocol(isActive ? null : p.id as any);
+                        }}
+                        className={`py-2 px-1 rounded-lg text-[9.5px] font-bold border transition-all text-center ${isActive ? activeClass : inactiveClass}`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Editable Vitals Panel with Voice Input */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold text-cyan-400 flex items-center gap-1">
+                    <Activity className="w-3 h-3" /> Live Paramedic Vitals
                   </span>
-                  <div className="flex-1">
-                    <p className="text-slate-200 font-medium leading-tight">
-                      {language === 'ta' ? step.instructionTa : step.instructionEn}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1 text-[9.5px] font-mono text-slate-400">
-                      <span className="text-cyan-400">{step.distanceKm} km</span>
-                      <span>•</span>
-                      <span className="text-emerald-400">Signal Green</span>
+                  <button
+                    onClick={() => {
+                      sound.playTactileClick();
+                      setIsMicListening(!isMicListening);
+                    }}
+                    className={`px-2 py-0.5 rounded text-[9px] font-mono flex items-center gap-1 transition-all ${
+                      isMicListening
+                        ? 'bg-rose-600 text-white animate-pulse'
+                        : 'bg-slate-800 text-slate-300 hover:text-cyan-300'
+                    }`}
+                  >
+                    <Mic className="w-2.5 h-2.5" />
+                    <span>{isMicListening ? 'Listening...' : 'Voice Input'}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-slate-950 p-1.5 rounded-lg border border-slate-800 text-center">
+                    <span className="text-[8.5px] text-slate-400 block font-mono">HR (BPM)</span>
+                    <input
+                      value={paramedicVitals.hr}
+                      onChange={(e) => setParamedicVitals({ ...paramedicVitals, hr: e.target.value })}
+                      className="w-full bg-transparent text-sm font-bold text-emerald-400 font-mono text-center focus:outline-none"
+                    />
+                  </div>
+                  <div className="bg-slate-950 p-1.5 rounded-lg border border-slate-800 text-center">
+                    <span className="text-[8.5px] text-slate-400 block font-mono">BP</span>
+                    <input
+                      value={paramedicVitals.bp}
+                      onChange={(e) => setParamedicVitals({ ...paramedicVitals, bp: e.target.value })}
+                      className="w-full bg-transparent text-sm font-bold text-cyan-300 font-mono text-center focus:outline-none"
+                    />
+                  </div>
+                  <div className="bg-slate-950 p-1.5 rounded-lg border border-slate-800 text-center">
+                    <span className="text-[8.5px] text-slate-400 block font-mono">SpO2 (%)</span>
+                    <input
+                      value={paramedicVitals.spo2}
+                      onChange={(e) => setParamedicVitals({ ...paramedicVitals, spo2: e.target.value })}
+                      className="w-full bg-transparent text-sm font-bold text-blue-400 font-mono text-center focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Scene Photo Upload & Deep-Link Google Maps */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    sound.playRadarPing();
+                    setScenePhotoUploaded(!scenePhotoUploaded);
+                  }}
+                  className={`py-2 px-2 border rounded-xl text-[10.5px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+                    scenePhotoUploaded
+                      ? 'bg-emerald-950/70 border-emerald-500/60 text-emerald-300'
+                      : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/80 text-slate-300'
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5 text-purple-400" />
+                  <span>{scenePhotoUploaded ? 'Scene Photo Sent' : 'Upload Scene Photo'}</span>
+                </button>
+
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destLat},${destLng}&travelmode=driving`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2 px-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-[10.5px] font-black flex items-center justify-center gap-1.5 shadow-md shadow-cyan-900/40 transition-all text-center"
+                >
+                  <Navigation className="w-3.5 h-3.5" />
+                  <span>Google Maps GPS</span>
+                </a>
+              </div>
+
+              {/* Tactical Radio Comms */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    sound.playRadioChirp();
+                    if (onOpenComms) onOpenComms('als-ambulance-49');
+                  }}
+                  className="py-2 px-2 bg-slate-900/90 hover:bg-cyan-950/60 border border-slate-700/80 hover:border-cyan-500/50 rounded-xl text-[11px] font-bold text-cyan-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                >
+                  <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
+                  <span>Radio ALS #49</span>
+                </button>
+                <button
+                  onClick={() => {
+                    sound.playRadioChirp();
+                    if (onOpenComms) onOpenComms('traffic-police-control');
+                  }}
+                  className="py-2 px-2 bg-slate-900/90 hover:bg-emerald-950/60 border border-slate-700/80 hover:border-emerald-500/50 rounded-xl text-[11px] font-bold text-emerald-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                >
+                  <span>Police Traffic HQ</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* TAB 2: RECEIVING HOSPITAL & BED RESERVATION */
+            <div className="space-y-3 flex-1 flex flex-col justify-between animate-in fade-in duration-200">
+              {/* Destination Hospital Card */}
+              <div className="bg-slate-900/90 border border-slate-700/90 rounded-xl p-3.5 space-y-2.5 shadow-lg">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[9.5px] uppercase font-mono text-cyan-400 font-bold flex items-center gap-1">
+                      <Hospital className="w-3 h-3" /> Receiving Facility
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-100 leading-snug">{targetHospital.name}</h3>
+                    <p className="text-[10px] text-slate-400">{targetHospital.ownership} • {currentDistrict.name}</p>
+                  </div>
+                  <span
+                    className={`text-[9.5px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                      targetHospital.traumaLevel.includes('Apex')
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    }`}
+                  >
+                    {targetHospital.traumaLevel}
+                  </span>
+                </div>
+
+                {/* Bed Grid */}
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800 text-xs">
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800/80">
+                    <div className="text-[9px] text-slate-400">Available Beds</div>
+                    <div className="text-sm font-bold text-emerald-400 font-mono">{actualHospitalAvailableBeds.toLocaleString()}</div>
+                    <div className="text-[8.5px] text-emerald-500/80">Ready for Admission</div>
+                  </div>
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800/80">
+                    <div className="text-[9px] text-slate-400">Critical ICU</div>
+                    <div className="text-sm font-bold text-amber-400 font-mono">
+                      {actualHospitalIcuBeds - actualHospitalIcuOccupied} / {actualHospitalIcuBeds}
+                    </div>
+                    <div className="text-[8.5px] text-amber-500/80">
+                      {Math.round((actualHospitalIcuOccupied / actualHospitalIcuBeds) * 100)}% Saturation
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Section 3: Live 108 ALS In-Transit Telemetry & Actions */}
-          <div className="space-y-2 pt-2 border-t border-slate-800">
-            <div className="bg-[#07132a] border border-cyan-500/30 rounded-xl p-3 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold">
-                  🚑
+                {/* Bed Hold Reservation Button */}
+                {activeReservation && activeReservation.hospitalId === targetHospital.id ? (
+                  <button
+                    onClick={() => {
+                      sound.playRadarPing();
+                      openReservationModal(targetHospital.id);
+                    }}
+                    className="w-full py-2 bg-gradient-to-r from-emerald-950 to-cyan-950 border border-emerald-500/50 hover:border-emerald-400 text-emerald-200 font-bold rounded-xl text-xs flex items-center justify-between px-3 shadow-md transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span>HOLD ACTIVE: {activeReservation.id}</span>
+                    </div>
+                    <span className="text-amber-300 font-mono font-black text-xs">
+                      {Math.floor(activeReservation.remainingSeconds / 60)}:{(activeReservation.remainingSeconds % 60).toString().padStart(2, '0')} ➔
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      sound.playRadarPing();
+                      openReservationModal(targetHospital.id);
+                    }}
+                    className="w-full py-2 bg-gradient-to-r from-cyan-600 via-cyan-500 to-emerald-500 hover:from-cyan-500 hover:to-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-cyan-900/40 transition-all cursor-pointer"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Reserve Bed (45-Min Hold)</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Turn-by-Turn Waypoints */}
+              <div className="space-y-1.5 bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex-1 overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between text-xs font-mono text-slate-300 font-bold mb-1">
+                  <span className="flex items-center gap-1.5 text-cyan-400">
+                    <Route className="w-3.5 h-3.5" /> Waypoints
+                  </span>
+                  <span className="text-emerald-400 text-[9.5px] flex items-center gap-1">
+                    <Zap className="w-2.5 h-2.5" /> Green Wave Active
+                  </span>
                 </div>
-                <div>
-                  <div className="font-bold text-slate-100">108 ALS Unit #TN-04</div>
-                  <div className="text-[10px] font-mono text-cyan-400">Speed: 68 km/h • Siren Active</div>
+
+                <div className="space-y-1.5 overflow-y-auto max-h-48 custom-scrollbar pr-1">
+                  {routeDetails.steps.map(step => (
+                    <div
+                      key={step.stepNumber}
+                      className="p-2 bg-slate-950/80 border border-slate-800/80 rounded-lg flex items-start gap-2 text-xs"
+                    >
+                      <span className="w-4 h-4 rounded-full bg-cyan-950 border border-cyan-500/40 text-cyan-300 font-mono font-bold flex items-center justify-center text-[9px] flex-shrink-0 mt-0.5">
+                        {step.stepNumber}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-slate-200 font-medium text-[11px] leading-snug">
+                          {language === 'ta' ? step.instructionTa : step.instructionEn}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5 text-[9px] font-mono text-slate-400">
+                          <span className="text-cyan-400">{step.distanceKm} km</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="text-right font-mono">
-                <div className="text-emerald-400 font-bold">{routeDetails.ambulanceTransitMinutes}m ETA</div>
-                <div className="text-[9px] text-slate-400">SpO2 96% • HR 112</div>
-              </div>
             </div>
-
-            {/* Quick Radio Intercom Actions */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => {
-                  sound.playRadioChirp();
-                  if (onOpenComms) onOpenComms('als-ambulance-49');
-                }}
-                className="py-2 px-2 bg-slate-900/90 hover:bg-cyan-950/60 border border-slate-700/80 hover:border-cyan-500/50 rounded-xl text-[11px] font-bold text-cyan-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
-              >
-                <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
-                <span>Radio ALS #49</span>
-              </button>
-              <button
-                onClick={() => {
-                  sound.playRadioChirp();
-                  if (onOpenComms) onOpenComms('traffic-police-control');
-                }}
-                className="py-2 px-2 bg-slate-900/90 hover:bg-emerald-950/60 border border-slate-700/80 hover:border-emerald-500/50 rounded-xl text-[11px] font-bold text-emerald-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
-              >
-                <span>👮 Police Traffic HQ</span>
-              </button>
-            </div>
-
-            {/* Enter Hospital Ward Cutaway Button */}
-            <button
-              onClick={handleEnterWard}
-              className="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-slate-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-900/40 transition-all"
-            >
-              <span>{t.enterWardCutaway || 'Enter 3D Ward Cutaway (Tier 3)'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

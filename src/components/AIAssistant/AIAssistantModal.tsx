@@ -294,11 +294,6 @@ ${query}
   // SHOW RESPONSE
   // ─────────────────────────────────────────────
 
-  setGuideMessages(prev => [
-    ...prev,
-    {
-      sender: 'bot',
-      text: botReply,
 
     sound.playRadarPing();
     setGuideMessages(prev => [...prev, { sender: 'user', text: query }]);
