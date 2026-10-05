@@ -126,174 +126,9 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onCl
     }
   };
 
- const handleGuideSend = async (text?: string) => {
-  const query = text || guideInput;
-
-  if (!query.trim()) return;
-
-  sound.playRadarPing();
-
-  setGuideMessages(prev => [
-    ...prev,
-    { sender: 'user', text: query }
-  ]);
-
-  if (!text) {
-    setGuideInput('');
-  }
-
-  const lower = query.toLowerCase();
-
-  let botReply = '';
-  let actionButton: { label: string; tab: any } | undefined;
-
-  // ─────────────────────────────────────────────
-  // LOCAL COMMANDS
-  // ─────────────────────────────────────────────
-
-  if (
-    lower.includes('tamil') ||
-    lower.includes('தமிழ்')
-  ) {
-    setLanguage('ta');
-
-    botReply =
-      'தமிழ் மொழிக்கு மாற்றப்பட்டுள்ளது. Aegis Intelligence இப்போது தமிழில் பதிலளிக்கும்.';
-
-  } else if (
-    lower.includes('english') ||
-    lower.includes('ஆங்கிலம்')
-  ) {
-    setLanguage('en');
-
-    botReply =
-      'Language switched to English. Aegis Intelligence is ready.';
-
-  } else if (
-    lower.includes('globe') ||
-    lower.includes('tier 1') ||
-    lower.includes('பூகோளம்')
-  ) {
-    setSpatialTier(1);
-
-    botReply =
-      'Switched to Globe View. You can monitor the overall regional situation.';
-
-  } else if (
-    lower.includes('district') ||
-    lower.includes('tier 2') ||
-    lower.includes('வரைபடம்') ||
-    lower.includes('மாவட்டம்')
-  ) {
-    setSpatialTier(2);
-
-    botReply =
-      'Switched to District View. You can monitor hospitals and capacity at the district level.';
-
-  } else if (
-    lower.includes('hospital') ||
-    lower.includes('ward') ||
-    lower.includes('tier 3') ||
-    lower.includes('மருத்துவமனை')
-  ) {
-    setSpatialTier(3);
-
-    botReply =
-      'Switched to Hospital View. You can now inspect individual hospital capacity and resources.';
-
-  } else if (
-    lower.includes('ghost') ||
-    lower.includes('கோஸ்ட்')
-  ) {
-    botReply =
-      'Ghost Bed detection identifies beds that appear available in records but may not actually be operational. Aegis helps flag these capacity inconsistencies.';
-
-  } else if (
-    lower.includes('ecg') ||
-    lower.includes('heart') ||
-    lower.includes('telemetry') ||
-    lower.includes('இதயம்')
-  ) {
-    botReply =
-      'ECG and telemetry data can provide important patient-monitoring signals. In Aegis, such data can support hospital capacity and emergency monitoring workflows.';
-
-  } else if (
-    lower.includes('what-if') ||
-    lower.includes('simulation') ||
-    lower.includes('மாதிரி')
-  ) {
-    botReply =
-      'What-if simulation allows the system to explore possible capacity situations and estimate how hospitals may respond to changing demand.';
-
-  } else {
-
-    // ─────────────────────────────────────────────
-    // GEMINI AI
-    // ─────────────────────────────────────────────
-
-    try {
-      const response = await fetch(
-        'http://localhost:5000/api/ask',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt: `
-You are Aegis Intelligence, the AI assistant inside the Aegis hospital capacity forecasting and emergency management dashboard.
-
-Answer the user's question clearly and professionally.
-
-You can explain:
-- hospital capacity forecasting
-- emergency routing
-- hospital beds and resources
-- dashboard features
-- AI forecasting
-- healthcare operations
-- data visualization
-- the Aegis system
-
-Important rules:
-- Do not invent live hospital data.
-- If information is not available, clearly say that it is unavailable or simulated.
-- Do not claim to make a medical diagnosis.
-- For medical emergencies, advise contacting qualified medical professionals or local emergency services.
-- Keep answers concise and easy to understand.
-- The user may ask questions in English or Tamil. Respond in the same language as the user.
-
-User question:
-${query}
-            `,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      botReply =
-        data.reply ||
-        'Sorry, I could not generate a response right now.';
-
-    } catch (error) {
-      console.error('AI Assistant error:', error);
-
-      botReply =
-        language === 'ta'
-          ? 'AI சேவையுடன் இணைக்க முடியவில்லை. Gemini backend இயங்குகிறதா என்பதை சரிபார்க்கவும்.'
-          : 'I could not connect to the AI service. Please make sure the Gemini backend is running.';
-    }
-  }
-
-  // ─────────────────────────────────────────────
-  // SHOW RESPONSE
-  // ─────────────────────────────────────────────
-
+  const handleGuideSend = (text?: string) => {
+    const query = text || guideInput;
+    if (!query.trim()) return;
 
     sound.playRadarPing();
     setGuideMessages(prev => [...prev, { sender: 'user', text: query }]);
@@ -361,10 +196,25 @@ ${query}
           ? 'வாட்-இஃப் சான்ட்பாக்ஸ் 80% நம்பிக்கையுடன் படுக்கை தேவையை முன்கூட்டியே கணிக்கிறது. தேர்ந்தெடுக்கப்பட்ட அறுவை சிகிச்சை விகிதங்களை நீங்கள் மாற்றி அமைக்கலாம்.'
           : 'The What-If Sandbox calculates multi-horizon census forecasts with 80% confidence bands. You can adjust elective surgery ratios or trigger crisis presets.';
         speakText(botReply);
+      } else if (lower.includes('bed') || lower.includes('reserve') || lower.includes('hold') || lower.includes('படுக்கை')) {
+        botReply = language === 'ta'
+          ? 'அவசர படுக்கை முன்பதிவு: நீங்கள் எந்த மருத்துவமனையிலும் 45 நிமிடங்களுக்கு படுக்கையை முன்பதிவு செய்யலாம். நீங்கள் வரும் வரை படுக்கை உறுதி செய்யப்படும்.'
+          : 'Emergency Bed Reservation: You can reserve a verified bed at any district hospital with a guaranteed 45-minute hold and digital intake QR token.';
+        speakText(botReply);
+      } else if (lower.includes('blood') || lower.includes('oxygen') || lower.includes('இரத்தம்') || lower.includes('ஆக்சிஜன்')) {
+        botReply = language === 'ta'
+          ? `${currentDistrict.name} மாவட்டத்தில் உள்ள அனைத்து இரத்த வங்கிகள் மற்றும் திரவ மருத்துவ ஆக்சிஜன் (LMO) கையிருப்பு நிகழ்நேரத்தில் கண்காணிக்கப்படுகிறது.`
+          : `All 8 blood groups and cryogenic Liquid Medical Oxygen (LMO) buffers in ${currentDistrict.name} are monitored in real-time with 48h district autonomy indicators.`;
+        speakText(botReply);
+      } else if (lower.includes('cpr') || lower.includes('stroke') || lower.includes('first aid') || lower.includes('முதலுதவி')) {
+        botReply = language === 'ta'
+          ? 'முதலுதவி வழிகாட்டி: 110 BPM CPR இதய துடிப்பு வழிகாட்டி, ஸ்ட்ரோக் FAST பரிசோதனை மற்றும் இரத்தப்போக்கு தடுப்பு வழிகாட்டிகள் உள்ளன.'
+          : 'First-Aid Guide: Includes an active 110 BPM Hands-Only CPR Metronome, Stroke F.A.S.T. clinical test, and hemorrhage control protocol.';
+        speakText(botReply);
       } else {
         botReply = language === 'ta'
-          ? `நான் ${currentDistrict.name} மாவட்டத்தின் அனைத்து மருத்துவமனைகளையும் கண்காணிக்கிறேன். அவசர உதவி மற்றும் வழிகாட்டுதலுக்கு மேலே உள்ள தாவலைத் தேர்ந்தெடுக்கவும் அல்லது மொழியை மாற்றக் கூறவும்.`
-          : `I am actively monitoring capacity across ${currentDistrict.name} district hospitals (${currentDistrict.hospitals.map(h => h.shortName).join(', ')}). You can test emergency triage above or ask me to change language.`;
+          ? `நான் ${currentDistrict.name} மாவட்டத்தின் அனைத்து மருத்துவமனைகளையும் கண்காணிக்கிறேன் (${currentDistrict.hospitals.map(h => h.shortName).join(', ')}). அவசர உதவி மற்றும் வழிகாட்டுதலுக்கு மேலே உள்ள தாவலைத் தேர்ந்தெடுக்கவும்.`
+          : `I am actively monitoring capacity across ${currentDistrict.name} district hospitals (${currentDistrict.hospitals.map(h => h.shortName).join(', ')}). You can ask me about emergency triage, bed reservations, live maps, or speak hands-free.`;
         speakText(botReply);
       }
 

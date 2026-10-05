@@ -248,7 +248,11 @@ export const App: React.FC = () => {
       )}
 
       {isOmniSearchOpen && setOmniSearchOpen && (
-        <OmniSearchModal isOpen={isOmniSearchOpen} onClose={() => setOmniSearchOpen(false)} />
+        <OmniSearchModal
+          isOpen={isOmniSearchOpen}
+          onClose={() => setOmniSearchOpen(false)}
+          onNavigateView={handleSidebarNavigate}
+        />
       )}
 
       {isShiftHandoverOpen && setShiftHandoverOpen && (
@@ -270,8 +274,10 @@ export const App: React.FC = () => {
         onClose={() => openGpsStreamModal && openGpsStreamModal(false)}
       />
 
-      {/* Outstanding Features */}
-      {userRole === 'authority' && activeModuleView === 'spatial' && <PredictiveTimeScrubber />}
+      {/* Scoped Predictive Scrubber: Only on District Map Simulation */}
+      {userRole === 'authority' && activeModuleView === 'spatial' && spatialTier === 2 && !dedicatedRouteActive && (
+        <PredictiveTimeScrubber />
+      )}
       <CCTVFeedPanel />
       <QRScannerModal />
 

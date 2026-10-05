@@ -590,10 +590,10 @@ export const DistrictVectorMap: React.FC<DistrictVectorMapProps> = ({ onOpenComm
           )}
         </div>
 
-        {/* 3. SLEEK GLASSMORPHIC HOSPITAL INSPECTOR PANEL (Top-Right) */}
-        <div className="absolute top-4 right-4 z-20 w-80 bg-slate-950/90 backdrop-blur-xl rounded-2xl border border-slate-800/90 p-4 shadow-2xl text-slate-200 space-y-3 animate-in fade-in duration-200">
-          {/* Panel Header */}
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+        {/* 3. SLEEK GLASSMORPHIC HOSPITAL INSPECTOR PANEL (Top-Right with Smooth Full Scrolling) */}
+        <div className="absolute top-4 right-4 z-20 w-84 max-h-[calc(100%-2rem)] bg-slate-950/95 backdrop-blur-2xl rounded-2xl border border-slate-800/90 shadow-2xl text-slate-200 flex flex-col overflow-hidden animate-in fade-in duration-200">
+          {/* Sticky Panel Header */}
+          <div className="p-4 border-b border-slate-800/80 bg-slate-950/90 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <span
                 className={`w-2.5 h-2.5 rounded-full ${
@@ -619,252 +619,231 @@ export const DistrictVectorMap: React.FC<DistrictVectorMapProps> = ({ onOpenComm
             </span>
           </div>
 
-          {/* Hospital Identity */}
-          <div>
-            <h4 className="text-sm font-bold text-slate-100 leading-snug">{destHospital.name}</h4>
-            <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-1">
-              <span className="text-cyan-300 font-bold">{routeDetails.distanceKm} km</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-emerald-300 font-bold">{routeDetails.ambulanceTransitMinutes}m ETA</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-emerald-400 font-semibold">108 Corridor</span>
+          {/* Scrollable Interior Body */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            {/* Hospital Identity */}
+            <div>
+              <h4 className="text-sm font-bold text-slate-100 leading-snug">{destHospital.name}</h4>
+              <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-1">
+                <span className="text-cyan-300 font-bold">{routeDetails.distanceKm} km</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-emerald-300 font-bold">{routeDetails.ambulanceTransitMinutes}m ETA</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-emerald-400 font-semibold">108 Corridor</span>
+              </div>
             </div>
-          </div>
 
-          {/* Data Reliability Layer */}
-          <div className="flex gap-2">
-            <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col gap-1">
-              <span className="text-[9px] font-mono text-slate-500 uppercase flex items-center gap-1">
-                <Database className="w-3 h-3 text-cyan-500" /> Data Status
-              </span>
-              <span className={`text-[10px] font-bold ${destHospital.dataStatus === 'Fresh' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {destHospital.dataStatus} • {destHospital.lastUpdatedMinutesAgo}m ago
-              </span>
-            </div>
-            <div className="flex-[1.5] bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col gap-1">
-              <span className="text-[9px] font-mono text-slate-500 uppercase flex items-center gap-1">
-                <Cpu className="w-3 h-3 text-rose-500" /> Validation Source
-              </span>
-              <span className={`text-[9px] font-bold ${destHospital.confidenceScore === 'HIGH' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {destHospital.confidenceScore}: IoT Bed Weight Sensors
-              </span>
-            </div>
-          </div>
+            {/* AI Shortage Alert (Inline when Predictive Mode active) */}
+            {predictiveOffsetHours > 0 && (
+              <div className="bg-gradient-to-r from-amber-950/80 to-rose-950/80 border border-rose-500/40 rounded-xl p-3 shadow-lg animate-in fade-in">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5 animate-pulse" />
+                  <div className="text-xs">
+                    <div className="font-bold text-rose-300">Predicted Shortage (+{predictiveOffsetHours}h)</div>
+                    <div className="text-[10px] text-slate-300 mt-0.5 leading-relaxed">
+                      Ventilator threshold breach forecast. <strong className="text-emerald-400">+5 Available</strong> at nearby facility.
+                    </div>
+                    <button
+                      onClick={() => {
+                        sound.playTactileClick();
+                        alert("Automated Drone Dispatch Authorized: Pre-allocating ventilators.");
+                      }}
+                      className="mt-2 w-full py-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/50 text-rose-200 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Truck className="w-3 h-3" /> Authorize AI Transfer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
-          {/* Bed Occupancy Capacity Gauge */}
-          <div className="bg-slate-900/90 border border-slate-800/80 rounded-xl p-2.5 space-y-1.5">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-400 flex items-center gap-1.5 font-mono">
-                <Bed className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Census (Tot/Occ/Res)</span>
-              </span>
-              <span className="font-mono font-bold text-slate-200">
-                {destHospital.totalBeds} / {destHospital.occupiedBeds} / <span className="text-amber-400">{destHospital.reservedBeds}</span>
-                <span className={occPercent >= 90 ? 'text-rose-400 ml-1' : 'text-emerald-400 ml-1'}>
-                  ({occPercent}%)
+            {/* Data Reliability Layer */}
+            <div className="flex gap-2">
+              <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col gap-1">
+                <span className="text-[9px] font-mono text-slate-500 uppercase flex items-center gap-1">
+                  <Database className="w-3 h-3 text-cyan-500" /> Data Status
                 </span>
-              </span>
-            </div>
-            {/* Clean Progress Bar */}
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden flex">
-              <div
-                className={`h-full transition-all duration-500 ${occPercent >= 95 ? 'bg-rose-500' : occPercent >= 85 ? 'bg-amber-400' : 'bg-emerald-400'}`}
-                style={{ width: `${(destHospital.occupiedBeds / destHospital.totalBeds) * 100}%` }}
-              />
-              <div
-                className="h-full bg-amber-500 transition-all duration-500"
-                style={{ width: `${(destHospital.reservedBeds / destHospital.totalBeds) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Granular Resource Tracking */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col items-center justify-center gap-1">
-              <Wind className="w-3.5 h-3.5 text-cyan-400" />
-              <div className="text-xs font-bold text-slate-200">{destHospital.ventilatorsAvailable}/{destHospital.ventilatorsTotal}</div>
-              <div className="text-[8px] font-mono text-slate-500 uppercase">Vents</div>
-            </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col items-center justify-center gap-1">
-              <Stethoscope className="w-3.5 h-3.5 text-emerald-400" />
-              <div className="text-xs font-bold text-slate-200">{destHospital.doctorsAvailable}</div>
-              <div className="text-[8px] font-mono text-slate-500 uppercase">Docs</div>
-            </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col items-center justify-center gap-1">
-              <Users className="w-3.5 h-3.5 text-rose-400" />
-              <div className="text-xs font-bold text-slate-200">{destHospital.nursesAvailable}</div>
-              <div className="text-[8px] font-mono text-slate-500 uppercase">Nurses</div>
-            </div>
-          </div>
-
-          {/* Live Wait Times Strip */}
-          <div className="grid grid-cols-3 gap-2 text-center text-[10.5px] font-mono">
-            <div className="bg-slate-900/70 border border-slate-800 rounded-lg p-1.5">
-              <div className="text-slate-400 text-[9.5px]">ER WAIT</div>
-              <div className="font-bold text-cyan-300 mt-0.5">
-                {destWaitTimes.ed.waitTimeMinutes === 0 ? '0m' : `${destWaitTimes.ed.waitTimeMinutes}m`}
+                <span className={`text-[10px] font-bold ${destHospital.dataStatus === 'Fresh' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {destHospital.dataStatus} • {destHospital.lastUpdatedMinutesAgo}m ago
+                </span>
+              </div>
+              <div className="flex-[1.5] bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col gap-1">
+                <span className="text-[9px] font-mono text-slate-500 uppercase flex items-center gap-1">
+                  <Cpu className="w-3 h-3 text-rose-500" /> Validation Source
+                </span>
+                <span className={`text-[9px] font-bold ${destHospital.confidenceScore === 'HIGH' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {destHospital.confidenceScore}: IoT Bed Sensors
+                </span>
               </div>
             </div>
-            <div className="bg-slate-900/70 border border-slate-800 rounded-lg p-1.5">
-              <div className="text-slate-400 text-[9.5px]">ICU WAIT</div>
-              <div className="font-bold text-amber-300 mt-0.5">{destWaitTimes.icu.waitTimeMinutes}m</div>
+
+            {/* Bed Occupancy Capacity Gauge */}
+            <div className="bg-slate-900/90 border border-slate-800/80 rounded-xl p-2.5 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 flex items-center gap-1.5 font-mono">
+                  <Bed className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Census (Tot/Occ/Res)</span>
+                </span>
+                <span className="font-mono font-bold text-slate-200">
+                  {destHospital.totalBeds} / {destHospital.occupiedBeds} / <span className="text-amber-400">{destHospital.reservedBeds}</span>
+                  <span className={occPercent >= 90 ? 'text-rose-400 ml-1' : 'text-emerald-400 ml-1'}>
+                    ({occPercent}%)
+                  </span>
+                </span>
+              </div>
+              {/* Progress Bar */}
+              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden flex">
+                <div
+                  className={`h-full transition-all duration-500 ${occPercent >= 95 ? 'bg-rose-500' : occPercent >= 85 ? 'bg-amber-400' : 'bg-emerald-400'}`}
+                  style={{ width: `${(destHospital.occupiedBeds / destHospital.totalBeds) * 100}%` }}
+                />
+                <div
+                  className="h-full bg-amber-500 transition-all duration-500"
+                  style={{ width: `${(destHospital.reservedBeds / destHospital.totalBeds) * 100}%` }}
+                />
+              </div>
             </div>
-            <div className="bg-slate-900/70 border border-slate-800 rounded-lg p-1.5">
-              <div className="text-slate-400 text-[9.5px]">HOLD</div>
-              <div className="font-bold text-emerald-400 mt-0.5">45m Lock</div>
+
+            {/* Granular Resource Tracking */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col items-center justify-center gap-1">
+                <Wind className="w-3.5 h-3.5 text-cyan-400" />
+                <div className="text-xs font-bold text-slate-200">{destHospital.ventilatorsAvailable}/{destHospital.ventilatorsTotal}</div>
+                <div className="text-[8px] font-mono text-slate-500 uppercase">Vents</div>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col items-center justify-center gap-1">
+                <Stethoscope className="w-3.5 h-3.5 text-emerald-400" />
+                <div className="text-xs font-bold text-slate-200">{destHospital.doctorsAvailable}</div>
+                <div className="text-[8px] font-mono text-slate-500 uppercase">Docs</div>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 flex flex-col items-center justify-center gap-1">
+                <Users className="w-3.5 h-3.5 text-rose-400" />
+                <div className="text-xs font-bold text-slate-200">{destHospital.nursesAvailable}</div>
+                <div className="text-[8px] font-mono text-slate-500 uppercase">Nurses</div>
+              </div>
             </div>
-          </div>
 
-          {/* Active Reservation Notification (if reserved at this hospital) */}
-          {activeReservation && activeReservation.hospitalId === destHospital.id && (
-            <div className="bg-amber-500/10 border border-amber-500/40 rounded-xl p-2 text-xs flex items-center justify-between">
-              <span className="text-amber-300 font-mono font-bold flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 animate-pulse" />
-                Active Bed Hold
-              </span>
-              <span className="font-mono text-amber-200 font-bold">
-                {Math.floor(activeReservation.remainingSeconds / 60)}:
-                {String(activeReservation.remainingSeconds % 60).padStart(2, '0')}
-              </span>
+            {/* Live Wait Times Strip */}
+            <div className="grid grid-cols-3 gap-2 text-center text-[10.5px] font-mono">
+              <div className="bg-slate-900/70 border border-slate-800 rounded-lg p-1.5">
+                <div className="text-slate-400 text-[9.5px]">ER WAIT</div>
+                <div className="font-bold text-cyan-300 mt-0.5">
+                  {destWaitTimes.ed.waitTimeMinutes === 0 ? '0m' : `${destWaitTimes.ed.waitTimeMinutes}m`}
+                </div>
+              </div>
+              <div className="bg-slate-900/70 border border-slate-800 rounded-lg p-1.5">
+                <div className="text-slate-400 text-[9.5px]">ICU WAIT</div>
+                <div className="font-bold text-amber-300 mt-0.5">{destWaitTimes.icu.waitTimeMinutes}m</div>
+              </div>
+              <div className="bg-slate-900/70 border border-slate-800 rounded-lg p-1.5">
+                <div className="text-slate-400 text-[9.5px]">HOLD</div>
+                <div className="font-bold text-emerald-400 mt-0.5">45m Lock</div>
+              </div>
             </div>
-          )}
 
-          {/* Tactical Radio Comms Trigger */}
-          <button
-            onClick={() => {
-              sound.playRadioChirp();
-              if (onOpenComms) onOpenComms('hosp-er-chief');
-            }}
-            className="w-full py-1.5 bg-gradient-to-r from-rose-950/80 via-slate-900 to-amber-950/80 hover:from-rose-900 hover:to-amber-900 border border-rose-500/40 hover:border-rose-400 text-rose-300 hover:text-rose-100 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer group"
-          >
-            <Radio className="w-3.5 h-3.5 text-rose-400 group-hover:animate-pulse" />
-            <span>{language === 'ta' ? 'அவசர சிகிச்சை தலைவரை அழை 📻' : 'Radio Trauma Desk (VoIP) 📻'}</span>
-          </button>
+            {/* Active Reservation Notification */}
+            {activeReservation && activeReservation.hospitalId === destHospital.id && (
+              <div className="bg-amber-500/10 border border-amber-500/40 rounded-xl p-2 text-xs flex items-center justify-between">
+                <span className="text-amber-300 font-mono font-bold flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 animate-pulse" />
+                  Active Bed Hold
+                </span>
+                <span className="font-mono text-amber-200 font-bold">
+                  {Math.floor(activeReservation.remainingSeconds / 60)}:
+                  {String(activeReservation.remainingSeconds % 60).padStart(2, '0')}
+                </span>
+              </div>
+            )}
 
-          {/* Logistics Shortcuts: Oxygen & Blood Bank */}
-          <div className="grid grid-cols-2 gap-2">
+            {/* Tactical Radio Comms Trigger */}
             <button
               onClick={() => {
-                sound.playRadarPing();
-                openOxygenModal(true);
+                sound.playRadioChirp();
+                if (onOpenComms) onOpenComms('hosp-er-chief');
               }}
-              className="py-1.5 px-2 bg-slate-900 hover:bg-cyan-950/60 border border-slate-700/80 hover:border-cyan-500/50 rounded-xl text-[11px] font-bold text-cyan-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
-              title="Liquid Medical Oxygen Cryogenic Bank"
+              className="w-full py-1.5 bg-gradient-to-r from-rose-950/80 via-slate-900 to-amber-950/80 hover:from-rose-900 hover:to-amber-900 border border-rose-500/40 hover:border-rose-400 text-rose-300 hover:text-rose-100 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer group"
             >
-              <Wind className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{oxygenData.percentage}% O2 Bank</span>
+              <Radio className="w-3.5 h-3.5 text-rose-400 group-hover:animate-pulse" />
+              <span>{language === 'ta' ? 'அவசர சிகிச்சை தலைவரை அழை 📻' : 'Radio Trauma Desk (VoIP) 📻'}</span>
             </button>
 
-            <button
-              onClick={() => {
-                sound.playRadarPing();
-                openBloodModal(true);
-              }}
-              className="py-1.5 px-2 bg-slate-900 hover:bg-rose-950/60 border border-slate-700/80 hover:border-rose-500/50 rounded-xl text-[11px] font-bold text-rose-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
-              title="Central Blood Bank & Cryo-Storage"
-            >
-              <Droplet className="w-3.5 h-3.5 text-rose-400" />
-              <span>Blood Bank</span>
-            </button>
-          </div>
-
-          {/* Primary Action Buttons */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <button
-              onClick={() => {
-                sound.playRadarPing();
-                setSelectedHospitalId(destHospital.id);
-                setDedicatedRouteActive(true);
-              }}
-              className="py-2 bg-slate-900 hover:bg-cyan-950 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 hover:text-cyan-100 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-            >
-              <Route className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{language === 'ta' ? '108 வழித்தடம் ↗' : '108 Route View'}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                sound.playRadarPing();
-                setSelectedHospitalId(destHospital.id);
-                setDedicatedRouteActive(true);
-              }}
-              className="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-cyan-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-            >
-              <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{language === 'ta' ? 'உள்ளமை வீதி வரைபடம்' : 'In-App Street GPS'}</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                sound.playRadarPing();
-                openReservationModal(destHospital.id);
-              }}
-              className="flex-1 py-2 bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-950/40 transition-all cursor-pointer"
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>{language === 'ta' ? 'படுக்கை முன்பதிவு' : 'Reserve Bed'}</span>
-            </button>
-
-            <button
-              onClick={() => handleEnterWard(destHospital)}
-              className="flex-1 py-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-900/40 transition-all cursor-pointer"
-            >
-              <span>{language === 'ta' ? '3D Ward 3D' : '3D Ward →'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Predictive Surge Time Slider (Bottom Center) */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-slate-950/90 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-3 flex items-center gap-4 shadow-2xl animate-in slide-in-from-bottom-6">
-          <div className="flex items-center gap-2 px-3 border-r border-slate-800">
-            <FastForward className="w-5 h-5 text-cyan-400" />
-            <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">Predictive Mode</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {[0, 12, 24].map(hours => (
+            {/* Logistics Shortcuts: Oxygen & Blood Bank */}
+            <div className="grid grid-cols-2 gap-2">
               <button
-                key={hours}
-                onClick={() => setPredictiveOffsetHours(hours)}
-                className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold transition-all ${
-                  predictiveOffsetHours === hours
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800'
-                }`}
+                onClick={() => {
+                  sound.playRadarPing();
+                  openOxygenModal(true);
+                }}
+                className="py-1.5 px-2 bg-slate-900 hover:bg-cyan-950/60 border border-slate-700/80 hover:border-cyan-500/50 rounded-xl text-[11px] font-bold text-cyan-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                title="Liquid Medical Oxygen Cryogenic Bank"
               >
-                {hours === 0 ? 'LIVE' : `+${hours} HRS`}
+                <Wind className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{oxygenData.percentage}% O2 Bank</span>
               </button>
-            ))}
-          </div>
-        </div>
 
-        {/* AI Logistics Trading Panel (Bottom Right) */}
-        {predictiveOffsetHours > 0 && (
-          <div className="absolute bottom-6 right-4 z-30 w-72 bg-gradient-to-r from-amber-950/80 to-rose-950/80 backdrop-blur-xl border border-rose-500/30 rounded-2xl p-4 shadow-2xl animate-in slide-in-from-right-8">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/50 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-4 h-4 text-rose-400 animate-pulse" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-rose-300">Predicted Shortage</h4>
-                <p className="text-[10px] text-slate-300 mt-1 leading-relaxed">
-                  <strong>{hubHospital.name}</strong> will run out of Ventilators in {predictiveOffsetHours}h. 
-                  <strong className="text-emerald-400"> +5 Available</strong> at Global Hospital.
-                </p>
-                <button 
-                  onClick={() => {
-                    sound.playTactileClick();
-                    alert("Automated Drone Dispatch Authorized: Transferring 2 Ventilators.");
-                  }}
-                  className="mt-3 w-full py-1.5 bg-rose-600/20 hover:bg-rose-500/40 border border-rose-500/50 text-rose-200 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2"
-                >
-                  <Truck className="w-3.5 h-3.5" /> Authorize AI Transfer
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  sound.playRadarPing();
+                  openBloodModal(true);
+                }}
+                className="py-1.5 px-2 bg-slate-900 hover:bg-rose-950/60 border border-slate-700/80 hover:border-rose-500/50 rounded-xl text-[11px] font-bold text-rose-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                title="Central Blood Bank & Cryo-Storage"
+              >
+                <Droplet className="w-3.5 h-3.5 text-rose-400" />
+                <span>Blood Bank</span>
+              </button>
             </div>
           </div>
-        )}
+
+          {/* Sticky Bottom Action Buttons */}
+          <div className="p-4 border-t border-slate-800/80 bg-slate-950/95 space-y-2 shrink-0">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  sound.playRadarPing();
+                  setSelectedHospitalId(destHospital.id);
+                  setDedicatedRouteActive(true);
+                }}
+                className="py-2 bg-slate-900 hover:bg-cyan-950 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 hover:text-cyan-100 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <Route className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{language === 'ta' ? '108 வழித்தடம் ↗' : '108 Route View'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  sound.playRadarPing();
+                  setSelectedHospitalId(destHospital.id);
+                  setDedicatedRouteActive(true);
+                }}
+                className="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-cyan-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <Navigation className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{language === 'ta' ? 'உள்ளமை வீதி வரைபடம்' : 'In-App Street GPS'}</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  sound.playRadarPing();
+                  openReservationModal(destHospital.id);
+                }}
+                className="flex-1 py-2 bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-950/40 transition-all cursor-pointer"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>{language === 'ta' ? 'படுக்கை முன்பதிவு' : 'Reserve Bed'}</span>
+              </button>
+
+              <button
+                onClick={() => handleEnterWard(destHospital)}
+                className="flex-1 py-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-900/40 transition-all cursor-pointer"
+              >
+                <span>{language === 'ta' ? '3D Ward 3D' : '3D Ward →'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>
