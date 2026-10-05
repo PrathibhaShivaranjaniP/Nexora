@@ -24,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenDisasterSim = () => {},
   onLogout = () => {}
 }) => {
-  const { openOxygenModal, openBloodModal, setCctvOpen, setQrScannerOpen } = useHospitalStore();
+  const { openOxygenModal, openBloodModal, setCctvOpen, setQrScannerOpen, setSelectedBedId } = useHospitalStore();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<'dispatch' | 'director'>('director');
@@ -45,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     : mainLinks;
 
   const actionButtons = [
+    { id: 'icu-room', label: 'ICU Room 12A (Doctor 3D)', icon: Building2, onClick: () => setSelectedBedId('ICU-01'), color: 'text-teal-400' },
     { id: 'cctv', label: 'Live CCTV Feeds', icon: Camera, onClick: () => setCctvOpen && setCctvOpen(true), color: 'text-amber-400' },
     { id: 'qr', label: 'Scan Wristband', icon: ScanLine, onClick: () => setQrScannerOpen && setQrScannerOpen(true), color: 'text-emerald-400' },
     { id: 'blood', label: 'Blood Bank', icon: Droplet, onClick: () => openBloodModal(true), color: 'text-red-400' },

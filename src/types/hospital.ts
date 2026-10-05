@@ -32,6 +32,23 @@ export interface DischargeBarrier {
   resolved: boolean;
 }
 
+export interface AttendingDoctorInfo {
+  name: string;
+  degree: string;
+  specialty: string;
+  qualifications: string;
+  status: 'ON-DUTY' | 'IN SURGERY' | 'ON-CALL';
+  pager: string;
+  avatarUrl?: string;
+}
+
+export interface PrimaryNurseInfo {
+  name: string;
+  credentials: string;
+  certifications: string[];
+  shift: string;
+}
+
 export interface Patient {
   id: string;
   mrn: string;
@@ -49,6 +66,8 @@ export interface Patient {
   estDischargeTime: string;
   dischargeBarrier?: DischargeBarrier;
   clinicalNotesSnippet?: string;
+  attendingDoctor?: AttendingDoctorInfo;
+  primaryNurse?: PrimaryNurseInfo;
 }
 
 export interface StaffMember {

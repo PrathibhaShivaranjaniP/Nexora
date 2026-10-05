@@ -18,6 +18,7 @@ import {
   Search,
   Stethoscope,
   Hospital,
+  BedDouble,
   AlertOctagon,
   ArrowRight,
   Shield,
@@ -75,13 +76,50 @@ export const PatientPublicPortal: React.FC = () => {
     bloodData,
     oxygenData,
     language,
-    submitBedRequest
+    submitBedRequest,
+    setSelectedBedId
   } = useHospitalStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'govt' | 'pvt' | 'icu'>('all');
   const [activeTab, setActiveTab] = useState<'hospitals' | 'blood-pharma' | 'first-aid' | 'digital-triage'>('hospitals');
   const [callSimActive, setCallSimActive] = useState<string | null>(null);
+  const [isVoiceReading, setIsVoiceReading] = useState(false);
+
+  // Universal Audio Speech Narration for Illiterate / Non-Technical Users
+  const handleVoiceReadAloud = () => {
+    sound.playRadarPing();
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    if (isVoiceReading) {
+      window.speechSynthesis.cancel();
+      setIsVoiceReading(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    setIsVoiceReading(true);
+
+    const totalAvail = currentDistrict.hospitals.reduce(
+      (acc, h) => acc + Math.max(0, h.totalBeds - h.occupiedBeds),
+      0
+    );
+
+    const text =
+      language === 'ta'
+        ? `வணக்கம். தமிழ்நாடு அவசர மருத்துவ உதவி சேவை. ${currentDistrict.name} மாவட்டத்தில் ${totalAvail} படுக்கைகள் காலியாக உள்ளன. அருகிலுள்ள மருத்துவமனை ${recommendedHospital.name}. அவசர உதவிக்கு 108 அழைக்கவும்.`
+        : `Welcome to Tamil Nadu State Emergency Health Grid. In ${currentDistrict.name} district, ${totalAvail} hospital beds are currently available. The nearest emergency hospital is ${recommendedHospital.name}. For immediate assistance, tap Call 108 SOS.`;
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+    if (language === 'ta') utter.lang = 'ta-IN';
+
+    utter.onend = () => setIsVoiceReading(false);
+    utter.onerror = () => setIsVoiceReading(false);
+
+    window.speechSynthesis.speak(utter);
+  };
 
   // Map View Controls & Fullscreen Maximizer
   const [mapZoom, setMapZoom] = useState(1.0);
@@ -666,6 +704,18 @@ export const PatientPublicPortal: React.FC = () => {
             </p>
 
             <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-400">
+              <button
+                onClick={handleVoiceReadAloud}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold transition-all shadow-md cursor-pointer ${
+                  isVoiceReading
+                    ? 'bg-amber-500 text-slate-950 animate-pulse border border-amber-400'
+                    : 'bg-gradient-to-r from-teal-500/30 via-cyan-500/20 to-slate-900 border border-teal-500/50 text-teal-300 hover:text-white'
+                }`}
+                title="Universal Voice Assistant (Speaks available bed count and emergency guide)"
+              >
+                <Volume2 className="w-4 h-4 text-teal-400 animate-bounce" />
+                <span>{language === 'ta' ? '🔊 தமிழில் கேளுங்கள் (Voice Guide)' : '🔊 Read Aloud / Voice Guide'}</span>
+              </button>
               <span className="flex items-center gap-1 text-cyan-300 bg-cyan-950/60 border border-cyan-800/60 px-2.5 py-1 rounded-lg">
                 <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" /> CMCHIS Free Care Covered
               </span>
@@ -1313,7 +1363,7 @@ export const PatientPublicPortal: React.FC = () => {
 
                   {/* Card Actions: Route & Reserve */}
                   <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={e => {
                           e.stopPropagation();
@@ -1325,6 +1375,19 @@ export const PatientPublicPortal: React.FC = () => {
                       >
                         <ShieldCheck className="w-4 h-4" />
                         <span>Reserve Bed (45m Hold)</span>
+                      </button>
+
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          sound.playRadarPing();
+                          setSelectedBedId('ICU-01');
+                        }}
+                        className="px-3.5 py-2 bg-teal-950/80 hover:bg-teal-900 text-teal-300 border border-teal-500/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Inspect 3D ICU Room & Attending Doctor Specifications"
+                      >
+                        <BedDouble className="w-3.5 h-3.5 text-teal-400" />
+                        <span>🛏️ 3D Room &amp; Doctor</span>
                       </button>
 
                       <button

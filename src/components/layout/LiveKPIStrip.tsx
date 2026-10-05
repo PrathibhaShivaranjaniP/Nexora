@@ -12,6 +12,7 @@ export default function LiveKPIStrip() {
     ghostBeds,
     simSpeed,
     setSimSpeed,
+    setSelectedBedId,
   } = useHospitalStore();
 
   const occupancyColor =
@@ -33,7 +34,7 @@ export default function LiveKPIStrip() {
   };
 
   return (
-    <div className="w-full bg-[#040c1a]/80 border border-slate-800/60 rounded-xl px-2 py-2 grid grid-cols-5 gap-0 divide-x divide-slate-800/60">
+    <div className="w-full bg-[#040c1a]/80 border border-slate-800/60 rounded-xl px-2 py-2 grid grid-cols-6 gap-0 divide-x divide-slate-800/60">
       {/* 1 — Occupancy */}
       <div className="px-3 py-1 text-center flex flex-col items-center justify-center gap-0.5">
         <span className={'text-xl font-black font-mono ' + occupancyColor}>
@@ -69,13 +70,28 @@ export default function LiveKPIStrip() {
         <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest">Ghosts</span>
       </button>
 
-      {/* 5 — Sim Speed */}
+      {/* 5 — 3D Bed Inspector */}
+      <button
+        onClick={() => {
+          sound.playRadarPing();
+          setSelectedBedId('ICU-01');
+        }}
+        className="px-3 py-1 text-center flex flex-col items-center justify-center gap-0.5 hover:bg-teal-950/30 transition-colors rounded-lg group cursor-pointer border-l border-slate-800/60"
+        title="Inspect 3D ICU Room 12A & Attending Doctor"
+      >
+        <span className="text-sm font-black font-mono text-teal-400 group-hover:scale-105 transition-transform flex items-center gap-1">
+          🛏️ 3D ROOM
+        </span>
+        <span className="text-[8px] font-mono text-teal-300 uppercase tracking-wider">Doctor Inspector</span>
+      </button>
+
+      {/* 6 — Sim Speed */}
       <button
         onClick={handleSimSpeedClick}
         className="px-3 py-1 text-center flex flex-col items-center justify-center gap-0.5 hover:bg-cyan-950/20 transition-colors rounded-lg"
         title="Click to cycle sim speed"
       >
-        <span className="text-xl font-black font-mono text-cyan-400">{simSpeed}\u00D7</span>
+        <span className="text-xl font-black font-mono text-cyan-400">{simSpeed}&times;</span>
         <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest">Sim Speed</span>
       </button>
     </div>
